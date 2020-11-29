@@ -1,11 +1,11 @@
 const Discord = require("discord.js"),
     client = new Discord.Client(),
-    token = 'NzI5MDczNzQ2NzEwODg4NDcz.XwDpcw.y1NhtNh9LZy4zRfdIp6kiCUCElM',
+    getToken = require("./botToken"),
     PREFIX = "!",
     handleInput = require("./handleInput");
 
 // Log into the bot.
-client.login(token);
+client.login(getToken.getToken());
 
 // Startup
 client.on('ready', () => {
