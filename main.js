@@ -1,6 +1,6 @@
 const Discord = require("discord.js"),
     client = new Discord.Client(),
-    token = 'NzI5MDczNzQ2NzEwODg4NDcz.XwDpcw.y1NhtNh9LZy4zRfdIp6kiCUCElM',
+    token = "",
     PREFIX = "!",
     handleInput = require("./handleInput");
 
