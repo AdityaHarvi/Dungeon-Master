@@ -65,7 +65,7 @@ function classSelection(playerClass, playerInfo) {
  * @param {stirng} playerClass The class that the player has chosen.
  * @param {object} msg Contains information about the command sent by the player through discord.
  */
-function generateDefaultCharacter(playerClass, msg) {   
+function generateDefaultCharacter(playerClass, msg) {
     // Throws an error if a player tries to re-create their character.
     if (fs.existsSync(`playerInfo/${msg.member.nickname}.json`)) return error.error('You have already created a character.', msg);
 

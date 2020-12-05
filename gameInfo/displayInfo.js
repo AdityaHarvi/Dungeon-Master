@@ -206,7 +206,7 @@ function getAttackFields(playerInfo, extraInfo) {
     if (playerInfo.specialAbility2) {
         fields[1] = {name: `\u200b`, value: `Ability Activated: \`${playerInfo.specialAbility2}\``, inline: true};
     }
-    
+
     return fields;
 }
 
