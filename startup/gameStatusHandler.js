@@ -47,6 +47,12 @@ function _checkForActiveGame(msg, callback) {
                 }
             })
         });
+
+        // All files are read and no active games are found.
+        if (counter === dirLen) {
+            callback(false);
+            return;
+        }
     });
 }
 
@@ -391,15 +397,13 @@ function _deleteRoles(gameName, msg) {
 }
 
 function _deleteChannels(gameName, msg) {
-    msg.guild.channels.cache.find(channel => channel.name === `${gameName}_host_channel`).delete().catch(err => {
-        console.log(`${gameName}_host_channel was not found`);
-    });
-    msg.guild.channels.cache.find(channel => channel.name === `${gameName}_player_channel`).delete().catch(err => {
-        console.log(`${gameName}_player_channel was not found`);
-    });
-    msg.guild.channels.cache.find(channel => channel.name === `${gameName}_campaign`).delete().catch(err => {
-        console.log(`${gameName}_campaign was not found`);
-    });
+    try {
+        msg.guild.channels.cache.find(channel => channel.name === `${gameName}_host_channel`).delete();
+        msg.guild.channels.cache.find(channel => channel.name === `${gameName}_player_channel`).delete();
+        msg.guild.channels.cache.find(channel => channel.name === `${gameName}_campaign`).delete();
+    } catch (err) {
+        console.log("Error deleting the channels");
+    }
 }
 
 function _wipeGameFile(path) {
