@@ -31,24 +31,22 @@ function _checkForActiveGame(msg, callback) {
         let dirLen = directories.length;
         let counter = 0;
 
-        directories.forEach((directories) => {
-            let gameName = directories.split('.')[0];
-
-            getInfo.getGameInfo(gameName, msg, (gameInfo) => {
+        directories.forEach((directory) => {
+            getInfo.getGameInfo(directory, msg, (gameInfo) => {
                 if (gameInfo.activeGame) {
                     error.error(`Campaign \`${gameInfo.title}\` is currently active.`, `Notify ${gameInfo.host} to \`!pause ${gameInfo.title}\` or \`!end ${gameInfo.title}\`.`, msg);
                     callback(true);
                     return;
                 }
                 counter++;
+
+                // All files are read and no active games are found.
+                if (counter === dirLen) {
+                    callback(false);
+                    return;
+                }
             })
         });
-
-        // All files are read and no active games are found.
-        if (counter === dirLen) {
-            callback(false);
-            return;
-        }
     });
 }
 
@@ -525,5 +523,121 @@ function endGame(rawInput, msg) {
     });
 }
 
+function _pauseChannel(gameName, msg) {
+    try {
+        msg.guild.channels.cache.find(name => name.name === `${gameName}_campaign`).overwritePermissions([
+            {
+                id: msg.guild.roles.cache.find(role => role.name === `@everyone`).id,
+                allow: ["VIEW_CHANNEL"],
+                deny: ["SEND_MESSAGES"]
+            }
+        ]).then(() => {
+            msg.guild.channels.cache.find(name => name.name === `${gameName}_player_channel`).overwritePermissions([
+                {
+                    id: msg.guild.roles.cache.find(role => role.name === `@everyone`).id,
+                    allow: ["VIEW_CHANNEL"],
+                    deny: ["SEND_MESSAGES"]
+                }
+            ]).then(() => {
+                msg.guild.channels.cache.find(name => name.name === `${gameName}_host_channel`).overwritePermissions([
+                    {
+                        id: msg.guild.roles.cache.find(role => role.name === `@everyone`).id,
+                        deny: ["VIEW_CHANNEL"]
+                    },
+                    {
+                        id: msg.guild.roles.cache.find(role => role.name === `${gameName}_host`).id,
+                        allow: ["VIEW_CHANNEL"],
+                        deny: ["SEND_MESSAGES"]
+                    }
+                ])
+            });
+        });
+    } catch (err) {
+        console.log("Error changing channel permissions");
+    }
+}
+
+function pauseGame(rawInput, msg) {
+    let gameName = _getGameName(rawInput);
+    getInfo.getGameInfo(gameName, msg, gameObject => {
+        if (gameObject.activeGame) {
+            gameObject.activeGame = false;
+            _pauseChannel(gameName, msg);
+            writeInfo.updateGame(gameObject, msg);
+            msg.channel.send(`\`${gameObject.title}\` has been paused.`);
+        } else {
+            return error.error("This is not an active game.", `\`!play ${gameName}\` to set it as an active game.`, msg);
+        }
+    });
+}
+
+function _playChannel(gameName, msg, callback) {
+    try {
+        msg.guild.channels.cache.find(name => name.name === `${gameName}_campaign`).overwritePermissions([
+            {
+                id: msg.guild.roles.cache.find(role => role.name === `@everyone`).id,
+                deny: ["VIEW_CHANNEL"]
+            },
+            {
+                id: msg.guild.roles.cache.find(role => role.name === `${gameName}_host`).id,
+                allow: ["VIEW_CHANNEL"]
+            },
+            {
+                id: msg.guild.roles.cache.find(role => role.name === `${gameName}_player`).id,
+                allow: ["VIEW_CHANNEL"]
+            }
+        ]).then(() => {
+            msg.guild.channels.cache.find(name => name.name === `${gameName}_host_channel`).overwritePermissions([
+                {
+                    id: msg.guild.roles.cache.find(role => role.name === `@everyone`).id,
+                    deny: ["VIEW_CHANNEL"]
+                },
+                {
+                    id: msg.guild.roles.cache.find(role => role.name === `${gameName}_host`).id,
+                    allow: ["VIEW_CHANNEL"]
+                }
+            ]).then (() => {
+                msg.guild.channels.cache.find(name => name.name === `${gameName}_player_channel`).overwritePermissions([
+                    {
+                        id: msg.guild.roles.cache.find(role => role.name === `@everyone`).id,
+                        deny: ["VIEW_CHANNEL"]
+                    },
+                    {
+                        id: msg.guild.roles.cache.find(role => role.name === `${gameName}_host`).id,
+                        allow: ["VIEW_CHANNEL"]
+                    },
+                    {
+                        id: msg.guild.roles.cache.find(role => role.name === `${gameName}_player`).id,
+                        allow: ["VIEW_CHANNEL"]
+                    }
+                ]).then(() => {
+                    callback();
+                });
+            });
+        });
+    } catch (err) {
+        console.log("Error changing channel permissions");
+    }
+}
+
+function playGame(rawInput, msg) {
+    let gameName = _getGameName(rawInput);
+    _checkForActiveGame(msg, isActive => {
+        if (isActive) {
+            return;
+        }
+        getInfo.getGameInfo(gameName, msg, gameObject => {
+            gameObject.activeGame = true;
+            _playChannel(gameObject.title, msg, () => {
+                writeInfo.updateGame(gameObject, msg, () => {
+                    msg.channel.send(`\`${gameObject.title}\` is now the active game.`);
+                });
+            });
+        });
+    });
+}
+
 exports.setupGame = setupGame;
 exports.endGame = endGame;
+exports.pauseGame = pauseGame;
+exports.playGame = playGame;

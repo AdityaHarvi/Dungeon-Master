@@ -49,6 +49,9 @@ client.on('message', msg => {
                 error.error("What is the campaign name?", "`!create <Campaign Name>`", msg);
             break;
         case "pause":
+            (args[1]) ?
+                gameHandler.pauseGame(args, msg) :
+                error.error("What is the campaign name?", "`!pause <Campaign Name>`", msg);
             break;
         case "end":
             (args[1]) ?
@@ -56,6 +59,9 @@ client.on('message', msg => {
                 error.error("What is the campaign name?", "`!end <Campaign Name>`", msg);
             break;
         case "play":
+            (args[1]) ?
+                gameHandler.playGame(args, msg) :
+                error.error("What is the campaign name?", "`!play <Campaign Name>`", msg);
             break;
         default:
             error.error("This is an unknown command.", "`!help` for a list of commands.", msg);;
