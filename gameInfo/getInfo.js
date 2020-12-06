@@ -25,7 +25,7 @@ function getPlayerInfo(playerName, msg, callback) {
  */
 function getGameInfo(gameName, msg, callback) {
     fs.readFile(`gameData/${gameName}/${gameName}.json`, (err, jsonString) => {
-        if (err) return error.error("I ran into an issue, I can't seem to find the game file.", null, msg);
+        if (err) return error.error("Game does not exist", "Check the spelling. Capitals do not matter.", msg);
 
         let gameInfo = JSON.parse(jsonString);
 

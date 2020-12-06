@@ -13,7 +13,7 @@ function _getGameName(rawInput) {
     for (let i = 1; i < rawInput.length; i++) {
         gameName += rawInput[i] + "_";
     }
-    return gameName.slice(0, -1);
+    return gameName.slice(0, -1).toLowerCase();
 }
 
 /**
@@ -108,16 +108,6 @@ function _getGameStartupEmbed(gameObject, acceptedList = "-", declinedList = "-"
  * @param {function} callback The callback function.
  */
 function _createChannels(gameObject, msg, callback) {
-    let channelExists = msg.guild.channels.cache.find(name => name.name === `${gameObject.title}_campaign`);
-    if (channelExists) {
-        // If the category already exists, then grab the information.
-        gameObject.gameCategory = channelExists.id;
-        gameObject.hostChannel = msg.guild.channels.cache.find(name => name.name === `${gameObject.title}_host_channel`).id;
-        gameObject.playerChannel = msg.guild.channels.cache.find(name => name.name === `${gameObject.title}_player_channel`).id;
-        callback(gameObject);
-        return;
-    }
-
     // Create the category.
     msg.guild.channels.create(`${gameObject.title}_campaign`, {
         type: "category"
@@ -195,39 +185,33 @@ function _createChannels(gameObject, msg, callback) {
  * @param {string} gameName The name of the campaign.
  * @param {object} msg Contains information about the command sent by the player through discord.
  */
-function _createRoles(gameName, msg) {
+function _createRoles(gameName, msg, callback) {
     roles = msg.guild.roles;
 
     // Create the host role.
-    if (!roles.cache.find(role => role.name === `${gameName}_host`)) {
-        roles.create({
-            data: {
-                name: `${gameName}_host`,
-                color: "PURPLE",
-                permissions: [
-                    "MANAGE_CHANNELS",
-                    "ADD_REACTIONS",
-                    "PRIORITY_SPEAKER",
-                    "STREAM",
-                    "VIEW_CHANNEL",
-                    "SEND_MESSAGES",
-                    "MANAGE_MESSAGES",
-                    "ATTACH_FILES",
-                    "READ_MESSAGE_HISTORY",
-                    "MENTION_EVERYONE",
-                    "CONNECT",
-                    "SPEAK",
-                    "CHANGE_NICKNAME",
-                    "MANAGE_ROLES",
-                ]
-            }
-        });
-    } else {
-        msg.channel.send(`Attempted to create role \`${gameName}_host\` but it was already made.`);
-    }
-
-    // Create the player role.
-    if (!roles.cache.find(role => role.name === `${gameName}_player`)) {
+    roles.create({
+        data: {
+            name: `${gameName}_host`,
+            color: "PURPLE",
+            permissions: [
+                "MANAGE_CHANNELS",
+                "ADD_REACTIONS",
+                "PRIORITY_SPEAKER",
+                "STREAM",
+                "VIEW_CHANNEL",
+                "SEND_MESSAGES",
+                "MANAGE_MESSAGES",
+                "ATTACH_FILES",
+                "READ_MESSAGE_HISTORY",
+                "MENTION_EVERYONE",
+                "CONNECT",
+                "SPEAK",
+                "CHANGE_NICKNAME",
+                "MANAGE_ROLES",
+            ]
+        }
+    }).then(() => {
+        // Create the player role.
         roles.create({
             data: {
                 name: `${gameName}_player`,
@@ -242,10 +226,10 @@ function _createRoles(gameName, msg) {
                     "SPEAK"
                 ]
             }
-        });
-    } else {
-        msg.channel.send(`Attempted to create role \`${gameName}_player\` but it was already made.`);
-    }
+        }).then(() => {
+            callback();
+        })
+    });
 }
 
 /**
@@ -256,34 +240,34 @@ function _createRoles(gameName, msg) {
  * @param {function} callback Callback function.
  */
 function _setRoles(gameObject, client, msg, callback) {
-    _createRoles(gameObject.title, msg);
-
-    // Assign the host role.
-    let hostUser = msg.guild.members.cache.get(client.users.cache.find(user => user.username === gameObject.host).id);
-    hostUser.roles.add(msg.guild.roles.cache.find(role => role.name === `${gameObject.title}_host`)).catch(error => {
-        msg.channel.send(`Due to permission errors, I was unable to assign the role \`${gameObject.title}_host\` to ${gameObject.host}`);
-    });
-
-    // Assign the player roles.
-    gameObject.players.forEach(player => {
-        let playerUser = msg.guild.members.cache.get(client.users.cache.find(user => user.username === player).id);
-        playerUser.roles.add(msg.guild.roles.cache.find(role => role.name === `${gameObject.title}_player`)).catch(error => {
-            msg.channel.send(`Due to permission errors, I was unable to assign the role \`${gameObject.title}_player\` to ${player}`);
+    _createRoles(gameObject.title, msg, () => {
+        // Assign the host role.
+        let hostUser = msg.guild.members.cache.get(client.users.cache.find(user => user.username === gameObject.host).id);
+        hostUser.roles.add(msg.guild.roles.cache.find(role => role.name === `${gameObject.title}_host`)).catch(error => {
+            msg.channel.send(`Due to permission errors, I was unable to assign the role \`${gameObject.title}_host\` to ${gameObject.host}`);
         });
-    });
 
-    _createChannels(gameObject, msg, newObject => {
-        callback(newObject);
+        // Assign the player roles.
+        gameObject.players.forEach(player => {
+            let playerUser = msg.guild.members.cache.get(client.users.cache.find(user => user.username === player).id);
+            playerUser.roles.add(msg.guild.roles.cache.find(role => role.name === `${gameObject.title}_player`)).catch(error => {
+                msg.channel.send(`Due to permission errors, I was unable to assign the role \`${gameObject.title}_player\` to ${player}`);
+            });
+        });
+
+        _createChannels(gameObject, msg, newObject => {
+            callback(newObject);
+        });
     });
 }
 
 function _generateUI(gameName, client, msg) {
-    let declined = [];
     let gameObject = {};
 
     gameObject.title = gameName;
     gameObject.host = msg.member.user.username;
     gameObject.players = [];
+    gameObject.declined = [];
     gameObject.hostChannel = null;
     gameObject.playerChannel = null;
     gameObject.gameCategory = null;
@@ -312,38 +296,43 @@ function _generateUI(gameName, client, msg) {
                 case "✅":
                     // Player wants to join the campaign.
                     if (!gameObject.players.includes(tempUserInfo.name) && !_isHost(gameObject.host, tempUserInfo.name)) {
-                        if (declined.includes(tempUserInfo.name)) {
+                        if (gameObject.declined.includes(tempUserInfo.name)) {
                             // Remove name from the 'declined' list.
-                            declined = declined.filter(newArray => newArray !== tempUserInfo.name);
+                            gameObject.declined = gameObject.declined.filter(newArray => newArray !== tempUserInfo.name);
                         }
                         gameObject.players.push(tempUserInfo.name);
-                        const updatedEmbed = _getGameStartupEmbed(gameObject, gameObject.players, declined);
+                        const updatedEmbed = _getGameStartupEmbed(gameObject, gameObject.players, gameObject.declined);
                         gameSetupEmbed.edit(updatedEmbed);
                     }
                     break;
                 case "❌":
                     // Player does not want to join the campaign.
-                    if (!declined.includes(tempUserInfo.name) && !_isHost(gameObject.host, tempUserInfo.name)) {
+                    if (!gameObject.declined.includes(tempUserInfo.name) && !_isHost(gameObject.host, tempUserInfo.name)) {
                         if (gameObject.players.includes(tempUserInfo.name)) {
                             // Remove name from the 'accepted' list.
                             gameObject.players = gameObject.players.filter(newArray => newArray !== tempUserInfo.name);
                         }
-                        declined.push(tempUserInfo.name);
-                        const updatedEmbed = _getGameStartupEmbed(gameObject, gameObject.players, declined);
+                        gameObject.declined.push(tempUserInfo.name);
+                        const updatedEmbed = _getGameStartupEmbed(gameObject, gameObject.players, gameObject.declined);
                         gameSetupEmbed.edit(updatedEmbed);
                     }
                     break;
                 case "👍":
                     // FIXME
                     // Host can start the game from there. This will generate the game file.
-                    if (_isHost(gameObject.host, tempUserInfo.name) /*&& gameObject.players.length > 0 && !_checkForActiveGame(gameObject.title, msg)*/) {
-                        gameSetupEmbed.delete()
-                        msg.channel.send(`Campaign \`${gameObject.title}\` has been created.`);
+                    if (_isHost(gameObject.host, tempUserInfo.name) /*&& gameObject.players.length > 0*/) {
+                        _checkForActiveGame(msg, isActive => {
+                            if (isActive) {
+                                return;
+                            }
+                            gameSetupEmbed.delete()
+                            msg.channel.send(`Campaign \`${gameObject.title}\` has been created.`);
 
-                        _setRoles(gameObject, client, msg, newObject => {
-                            // writeInfo.createGame(newObject, msg);
+                            _setRoles(gameObject, client, msg, newObject => {
+                                writeInfo.createGame(newObject, msg);
+                            });
+                            return;
                         });
-                        return;
                     }
                     break;
                 case "🗑️":
@@ -366,7 +355,7 @@ function _generateUI(gameName, client, msg) {
  * @param {object} msg Contains information about the command sent by the player through discord.
  */
 function setupGame(rawInput, client, msg) {
-    let gameName = _getGameName(rawInput).toLowerCase();
+    let gameName = _getGameName(rawInput);
 
     // Throws an error if a host tries to re-create their game.
     if (fs.existsSync(`gameData/${gameName}`)) {
@@ -381,8 +370,160 @@ function setupGame(rawInput, client, msg) {
     });
 }
 
+function _getGameEndEmbed(gameObject) {
+    return new Discord.MessageEmbed()
+        .setColor("0xb04360")
+        .setTitle("Ending Campaign: " + gameObject.title)
+        .setAuthor("Dungeon Master", "https://i.imgur.com/MivKiKL.png")
+        .setDescription("Do you want to delete or preserve the game data?")
+        .addFields(
+            {name: "✅ Full Wipe", value: "This will delete all related channels + roles + game data.", inline: true},
+            {name: "☑️ Partial Wipe", value: "Related channels will be archived and available for all to view + game files will be saved. Roles will be deleted. (Perfect if you want to keep the memories)", inline: true}
+        )
+        .setFooter("Or you can ❌ to cancel.")
+}
+
+function _deleteRoles(gameName, msg) {
+    try {
+        msg.guild.roles.cache.find(role => role.name === `${gameName}_host`).delete();
+        msg.guild.roles.cache.find(role => role.name === `${gameName}_player`).delete();
+    } catch (err) {
+        console.log("Error deleting role(s). Were they already deleted?");
+    }
+}
+
+function _deleteChannels(gameName, msg) {
+    msg.guild.channels.cache.find(channel => channel.name === `${gameName}_host_channel`).delete().catch(err => {
+        console.log(`${gameName}_host_channel was not found`);
+    });
+    msg.guild.channels.cache.find(channel => channel.name === `${gameName}_player_channel`).delete().catch(err => {
+        console.log(`${gameName}_player_channel was not found`);
+    });
+    msg.guild.channels.cache.find(channel => channel.name === `${gameName}_campaign`).delete().catch(err => {
+        console.log(`${gameName}_campaign was not found`);
+    });
+}
+
+function _wipeGameFile(path) {
+    if (fs.existsSync(path)) {
+        const files = fs.readdirSync(path);
+
+        if (files.length > 0) {
+            files.forEach(filename => {
+                if (fs.statSync(`${path}/${filename}`).isDirectory()) {
+                    _wipeGameFile(`${path}/${filename}`);
+                } else {
+                    fs.unlinkSync(`${path}/${filename}`);
+                }
+            });
+        }
+        fs.rmdirSync(`${path}`);
+    }
+}
+
+function _archiveChannels(gameName, msg, callback) {
+    try {
+        msg.guild.channels.cache.find(name => name.name === `${gameName}_campaign`).overwritePermissions([
+            {
+                id: msg.guild.roles.cache.find(role => role.name === `@everyone`).id,
+                allow: ["VIEW_CHANNEL"],
+                deny: ["SEND_MESSAGES"]
+            }
+        ]).then(() => {
+            msg.guild.channels.cache.find(name => name.name === `${gameName}_host_channel`).overwritePermissions([
+                {
+                    id: msg.guild.roles.cache.find(role => role.name === `@everyone`).id,
+                    allow: ["VIEW_CHANNEL"],
+                    deny: ["SEND_MESSAGES"]
+                }
+            ]).then (() => {
+                msg.guild.channels.cache.find(name => name.name === `${gameName}_player_channel`).overwritePermissions([
+                    {
+                        id: msg.guild.roles.cache.find(role => role.name === `@everyone`).id,
+                        allow: ["VIEW_CHANNEL"],
+                        deny: ["SEND_MESSAGES"]
+                    }
+                ]).then(() => {
+                    callback();
+                });
+            });
+        });
+    } catch (err) {
+        console.log("Error changing channel permissions");
+    }
+}
+
+function _generateEndUI(gameObject, msg) {
+    const endEmbed = _getGameEndEmbed(gameObject);
+    const tempUserInfo = {};
+    // Set the message and setup emotes.
+    msg.channel.send(endEmbed).then(async gameSetupEmbed => {
+        await gameSetupEmbed.react("✅");
+        await gameSetupEmbed.react("☑️");
+        await gameSetupEmbed.react("❌");
+
+        const filter = (reaction, user) => {
+            tempUserInfo.name = user.username;
+            return ["✅", "❌", "☑️"].includes(reaction.emoji.name);
+        }
+
+        // Handle the reactions.
+        const collector = gameSetupEmbed.createReactionCollector(filter);
+        collector.on('collect', reaction => {
+            switch (reaction.emoji.name) {
+                case "✅":
+                    // Player wants to perform a full wipe on the game.
+                    if (_isHost(gameObject.host, tempUserInfo.name)) {
+                        gameSetupEmbed.delete();
+                        _wipeGameFile(`gameData/${gameObject.title}`);
+                        _deleteChannels(gameObject.title, msg);
+                        _deleteRoles(gameObject.title, msg);
+                        msg.channel.send(`Campaign \`${gameObject.title}\` has fully deleted.`);
+                        return;
+                    }
+                    break;
+                case "❌":
+                    // Player does not want to cancel the game.
+                    if (_isHost(gameObject.host, tempUserInfo.name)) {
+                        gameSetupEmbed.delete();
+                        msg.channel.send(`No action taken.`);
+                        return;
+                    }
+                    break;
+                case "☑️":
+                    // Archive game.
+                    if (_isHost(gameObject.host, tempUserInfo.name)) {
+                        gameSetupEmbed.delete();
+                        _deleteRoles(gameObject.title, msg);
+                        _archiveChannels(gameObject.title, msg, () => {
+                            gameObject.hostChannel = null;
+                            gameObject.playerChannel = null;
+                            gameObject.gameCategory = null;
+                            gameObject.archived = true;
+                            gameObject.activeGame = false;
+                            writeInfo.updateGame(gameObject, msg);
+                            msg.channel.send(`Campaign \`${gameObject.title}\` has been archived.`);
+                            return;
+                        });
+                    }
+                    break;
+            }
+            _removeReaction(reaction);
+        });
+    });
+}
+
 function endGame(rawInput, msg) {
     let gameName = _getGameName(rawInput);
+    getInfo.getGameInfo(gameName, msg, gameObject => {
+        if (!_isHost(gameObject.host, msg.author.username)) {
+            return error.error("Only the host of the game can perform this action.", null, msg);
+        } else if (gameObject.archived) {
+            return error.error("The game is archived.", "You will need to manually delete the files.", msg);
+        }
+        _generateEndUI(gameObject, msg);
+    });
 }
 
 exports.setupGame = setupGame;
+exports.endGame = endGame;

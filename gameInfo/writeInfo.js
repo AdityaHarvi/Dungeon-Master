@@ -34,5 +34,14 @@ function createGame(gameObject, msg, callback) {
     if (callback) callback();
 }
 
+function updateGame(gameObject, msg, callback) {
+    fs.writeFile(`gameData/${gameObject.title}/${gameObject.title}.json`, JSON.stringify(gameObject), err => {
+        if (err) return error.error("Something went wrong while updating the character information.", null, msg);
+
+        if (callback) callback();
+    });
+}
+
 exports.writeInfo = writeInfo;
 exports.createGame = createGame;
+exports.updateGame = updateGame;

@@ -42,11 +42,6 @@ client.on('message', msg => {
     let args = msg.content.substring(PREFIX.length).split(" ");
     args[0] = args[0].toLowerCase();
 
-    let channelExists = msg.guild.channels.cache.find(name => name.name === `test_campaign`).id;
-    if (channelExists) {
-        console.log("IT EXISTS");
-    }
-
     switch(args[0]) {
         case "create":
             (args[1]) ?
@@ -56,6 +51,9 @@ client.on('message', msg => {
         case "pause":
             break;
         case "end":
+            (args[1]) ?
+                gameHandler.endGame(args, msg) :
+                error.error("What is the campaign name?", "`!end <Campaign Name>`", msg);
             break;
         case "play":
             break;
