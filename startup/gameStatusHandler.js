@@ -1,5 +1,7 @@
 const Discord = require("discord.js"),
     error = require("../util/error"),
+    player = require("./classSelection"),
+    ui = require("../util/UImethods"),
     db = require("../databaseHandler/dbHandler");
 
 /**
@@ -21,18 +23,6 @@ function _getGameName(rawInput) {
  */
 function _isHost(hostID, userID) {
     return hostID === userID;
-}
-
-/**
- * Removes all newly added reactions so that only 1 reaction is present at any time.
- * @param {reaction} reaction Reaction object.
- */
-function _removeReaction(reaction) {
-    reaction.users.cache.forEach(user => {
-        if (!user.bot) {
-            reaction.users.remove(user.id);
-        }
-    });
 }
 
 /**
@@ -298,6 +288,10 @@ function _generateCreationUI(gameName, client, msg) {
                             _setRoles(gameObject, client, msg, newObject => {
                                 db.insertGame(newObject);
                                 msg.channel.send(`Campaign \`${newObject.title}\` has been created.`);
+
+                                newObject.players.forEach(playerName => {
+                                    player.generateClassSelectionUI(gameObject.title, playerName, msg);
+                                });
                             });
                             return;
                         });
@@ -312,7 +306,7 @@ function _generateCreationUI(gameName, client, msg) {
                     }
                     break;
             }
-            _removeReaction(reaction);
+            ui.removeReaction(reaction);
         });
     });
 }
@@ -474,7 +468,7 @@ function _generateEndUI(gameObject, msg) {
                     }
                     break;
             }
-            _removeReaction(reaction);
+            ui.removeReaction(reaction);
         });
     });
 }

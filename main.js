@@ -5,6 +5,7 @@ const Discord = require("discord.js"),
     database = require("./databaseHandler/dbHandler"),
     error = require('./util/error'),
     gameHandler = require('./startup/gameStatusHandler'),
+    classSelection = require("./startup/classSelection"),
     getInfo = require('./gameInfo/getInfo'),
     displayInfo = require('./gameInfo/displayInfo'),
     startup = require('./startup/classSelection'),
@@ -34,14 +35,6 @@ client.login(getToken.getToken());
 client.on('ready', () => {
     console.log('System is online.');
     database.createDB();
-
-    // database.checkForActiveGame(exists => {
-    //     if (exists) console.log(exists.title);
-    // })
-
-    // database.getGameInfo("test", object => {
-    //     console.log(object)
-    // })
     client.user.setActivity('!help');
 });
 
@@ -51,9 +44,11 @@ client.on('message', msg => {
 
     let args = msg.content.substring(PREFIX.length).split(" ");
     args[0] = args[0].toLowerCase();
+    classSelection.generateClassSelectionUI({}, msg.author.username, msg);
+
 
     switch(args[0]) {
-        // Handles game creation / game status handeling.
+        // Handles game creation / game status handeling:
         case "create":
             (args[1]) ?
                 gameHandler.setupGame(args, client, msg) :

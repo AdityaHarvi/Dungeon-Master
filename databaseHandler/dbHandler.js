@@ -1,5 +1,4 @@
-const sqlite3 = require("sqlite3").verbose(),
-    error = require("../util/error");
+const sqlite3 = require("sqlite3").verbose();
 
 function createDB() {
     let db = new sqlite3.Database("dungeon.db");
@@ -215,24 +214,6 @@ function playGame(gameName) {
             }
         }
     );
-    db.close();
-}
-
-function updateGameHostChannel(gameName, newChannel) {
-    let db = new sqlite3.Database("dungeon.db", err => {
-        if (err) {
-            console.log(err.message);
-            return;
-        }
-    });
-
-    db.run(`
-        UPDATE game
-        SET hostChannel = :newChannel
-        WHERE title = :gameName;`,
-        [newChannel, gameName]
-    );
-
     db.close();
 }
 
