@@ -1,8 +1,6 @@
-const Discord = require('discord.js'),
-    fs = require('fs'),
-    error = require('../util/error'),
-    getInfo = require('../gameInfo/getInfo'),
-    writeInfo = require('../gameInfo/writeInfo');
+const Discord = require("discord.js"),
+    error = require("../util/error"),
+    db = require("../databaseHandler/dbHandler");
 
 /**
  * Concatinates the user input to create the Campaign Name.
@@ -14,46 +12,6 @@ function _getGameName(rawInput) {
         gameName += rawInput[i] + "_";
     }
     return gameName.slice(0, -1).toLowerCase();
-}
-
-/**
- * Checks if any existing game is the currently active game.
- * @param {object} msg Contains information about the command sent by the player through discord.
- * @param {function} callback Callback function.
- */
-function _checkForActiveGame(msg, callback) {
-    fs.readdir("gameData", (err, directories) => {
-        if (err) {
-            error.error("Failed to read game information folder.", null, msg);
-            return true;
-        }
-
-        let dirLen = directories.length;
-        let counter = 0;
-
-        directories.forEach((directory) => {
-            getInfo.getGameInfo(directory, msg, (gameInfo) => {
-                if (gameInfo.activeGame) {
-                    error.error(`Campaign \`${gameInfo.title}\` is currently active.`, `Notify ${gameInfo.host} to \`!pause ${gameInfo.title}\` or \`!end ${gameInfo.title}\`.`, msg);
-                    callback(true);
-                    return;
-                }
-                counter++;
-
-                // All files are read and no active games are found.
-                if (counter === dirLen) {
-                    callback(false);
-                    return;
-                }
-            })
-        });
-
-        // All files are read and no active games are found.
-        if (counter === dirLen) {
-            callback(false);
-            return;
-        }
-    });
 }
 
 /**
@@ -265,7 +223,13 @@ function _setRoles(gameObject, client, msg, callback) {
     });
 }
 
-function _generateUI(gameName, client, msg) {
+/**
+ * Sets up the UI and assigns logic to the reactions.
+ * @param {*} gameName The name of the game.
+ * @param {object} client The bot / client.
+ * @param {object} msg Contains information about the command sent by the player through discord.
+ */
+function _generateCreationUI(gameName, client, msg) {
     let gameObject = {};
 
     gameObject.title = gameName;
@@ -275,8 +239,8 @@ function _generateUI(gameName, client, msg) {
     gameObject.hostChannel = null;
     gameObject.playerChannel = null;
     gameObject.gameCategory = null;
-    gameObject.archived = false;
-    gameObject.activeGame = true;
+    gameObject.archived = 0;
+    gameObject.activeGame = 1;
 
     const setupEmbed = _getGameStartupEmbed(gameObject);
     const tempUserInfo = {};
@@ -325,15 +289,15 @@ function _generateUI(gameName, client, msg) {
                     // FIXME
                     // Host can start the game from there. This will generate the game file.
                     if (_isHost(gameObject.host, tempUserInfo.name) /*&& gameObject.players.length > 0*/) {
-                        _checkForActiveGame(msg, isActive => {
+                        db.getActiveGame(isActive => {
                             if (isActive) {
-                                return;
+                                return error.error(`Campaign \`${isActive.title}\` is currently active.`, `Notify ${isActive.host} to \`!pause ${isActive.title}\` or \`!end ${isActive.title}\`.`, msg);
                             }
                             gameSetupEmbed.delete()
-                            msg.channel.send(`Campaign \`${gameObject.title}\` has been created.`);
 
                             _setRoles(gameObject, client, msg, newObject => {
-                                writeInfo.createGame(newObject, msg);
+                                db.insertGame(newObject);
+                                msg.channel.send(`Campaign \`${newObject.title}\` has been created.`);
                             });
                             return;
                         });
@@ -356,24 +320,31 @@ function _generateUI(gameName, client, msg) {
 /**
  * Setup the UI for the newly generated game. Allows for players to join / decline joining the game.
  * @param {string} rawInput The raw user input.
+ * @param {object} client The bot / client.
  * @param {object} msg Contains information about the command sent by the player through discord.
  */
 function setupGame(rawInput, client, msg) {
     let gameName = _getGameName(rawInput);
 
-    // Throws an error if a host tries to re-create their game.
-    if (fs.existsSync(`gameData/${gameName}`)) {
-        return error.error("A campaign of this title has already been made.", null, msg);
-    }
-
-    _checkForActiveGame(msg, isActive => {
-        if (isActive) {
-            return;
+    db.getGameInfo(gameName, gameObject => {
+        if (gameObject) {
+            return error.error("A campaign of this title has already been made.", null, msg);
         }
-        _generateUI(gameName, client, msg);
-    });
+
+        db.getActiveGame(isActive => {
+            if (isActive) {
+                return error.error(`Campaign \`${isActive.title}\` is currently active.`, `Notify ${isActive.host} to \`!pause ${isActive.title}\` or \`!end ${isActive.title}\`.`, msg);
+            }
+
+            _generateCreationUI(gameName, client, msg);
+        });
+    })
 }
 
+/**
+ * Generate a UI for the ending-a-game screen.
+ * @param {object} gameObject The game object.
+ */
 function _getGameEndEmbed(gameObject) {
     return new Discord.MessageEmbed()
         .setColor("0xb04360")
@@ -387,6 +358,11 @@ function _getGameEndEmbed(gameObject) {
         .setFooter("Or you can ❌ to cancel.")
 }
 
+/**
+ * Deletes all roles associated with the game.
+ * @param {string} gameName The name of the game.
+ * @param {object} msg Contains information about the command sent by the player through discord.
+ */
 function _deleteRoles(gameName, msg) {
     try {
         msg.guild.roles.cache.find(role => role.name === `${gameName}_host`).delete();
@@ -396,6 +372,11 @@ function _deleteRoles(gameName, msg) {
     }
 }
 
+/**
+ * Deletes all channels associated with the game.
+ * @param {string} gameName The game name.
+ * @param {object} msg Contains information about the command sent by the player through discord.
+ */
 function _deleteChannels(gameName, msg) {
     try {
         msg.guild.channels.cache.find(channel => channel.name === `${gameName}_host_channel`).delete();
@@ -406,24 +387,12 @@ function _deleteChannels(gameName, msg) {
     }
 }
 
-function _wipeGameFile(path) {
-    if (fs.existsSync(path)) {
-        const files = fs.readdirSync(path);
-
-        if (files.length > 0) {
-            files.forEach(filename => {
-                if (fs.statSync(`${path}/${filename}`).isDirectory()) {
-                    _wipeGameFile(`${path}/${filename}`);
-                } else {
-                    fs.unlinkSync(`${path}/${filename}`);
-                }
-            });
-        }
-        fs.rmdirSync(`${path}`);
-    }
-}
-
-function _archiveChannels(gameName, msg, callback) {
+/**
+ * Archives all channels associated with the game.
+ * @param {string} gameName The game name.
+ * @param {object} msg Contains information about the command sent by the player through discord.
+ */
+function _archiveChannels(gameName, msg) {
     try {
         msg.guild.channels.cache.find(name => name.name === `${gameName}_campaign`).overwritePermissions([
             {
@@ -431,30 +400,31 @@ function _archiveChannels(gameName, msg, callback) {
                 allow: ["VIEW_CHANNEL"],
                 deny: ["SEND_MESSAGES"]
             }
-        ]).then(() => {
-            msg.guild.channels.cache.find(name => name.name === `${gameName}_host_channel`).overwritePermissions([
-                {
-                    id: msg.guild.roles.cache.find(role => role.name === `@everyone`).id,
-                    allow: ["VIEW_CHANNEL"],
-                    deny: ["SEND_MESSAGES"]
-                }
-            ]).then (() => {
-                msg.guild.channels.cache.find(name => name.name === `${gameName}_player_channel`).overwritePermissions([
-                    {
-                        id: msg.guild.roles.cache.find(role => role.name === `@everyone`).id,
-                        allow: ["VIEW_CHANNEL"],
-                        deny: ["SEND_MESSAGES"]
-                    }
-                ]).then(() => {
-                    callback();
-                });
-            });
-        });
+        ]);
+        msg.guild.channels.cache.find(name => name.name === `${gameName}_host_channel`).overwritePermissions([
+            {
+                id: msg.guild.roles.cache.find(role => role.name === `@everyone`).id,
+                allow: ["VIEW_CHANNEL"],
+                deny: ["SEND_MESSAGES"]
+            }
+        ]);
+        msg.guild.channels.cache.find(name => name.name === `${gameName}_player_channel`).overwritePermissions([
+            {
+                id: msg.guild.roles.cache.find(role => role.name === `@everyone`).id,
+                allow: ["VIEW_CHANNEL"],
+                deny: ["SEND_MESSAGES"]
+            }
+        ]);
     } catch (err) {
         console.log("Error changing channel permissions");
     }
 }
 
+/**
+ * Sets up the ending-a-game UI and assigns logic to the reactions.
+ * @param {string} gameObject The game object.
+ * @param {object} msg Contains information about the command sent by the player through discord.
+ */
 function _generateEndUI(gameObject, msg) {
     const endEmbed = _getGameEndEmbed(gameObject);
     const tempUserInfo = {};
@@ -477,7 +447,7 @@ function _generateEndUI(gameObject, msg) {
                     // Player wants to perform a full wipe on the game.
                     if (_isHost(gameObject.host, tempUserInfo.name)) {
                         gameSetupEmbed.delete();
-                        _wipeGameFile(`gameData/${gameObject.title}`);
+                        db.deleteGame(gameObject.title);
                         _deleteChannels(gameObject.title, msg);
                         _deleteRoles(gameObject.title, msg);
                         msg.channel.send(`Campaign \`${gameObject.title}\` has fully deleted.`);
@@ -497,16 +467,10 @@ function _generateEndUI(gameObject, msg) {
                     if (_isHost(gameObject.host, tempUserInfo.name)) {
                         gameSetupEmbed.delete();
                         _deleteRoles(gameObject.title, msg);
-                        _archiveChannels(gameObject.title, msg, () => {
-                            gameObject.hostChannel = null;
-                            gameObject.playerChannel = null;
-                            gameObject.gameCategory = null;
-                            gameObject.archived = true;
-                            gameObject.activeGame = false;
-                            writeInfo.updateGame(gameObject, msg);
-                            msg.channel.send(`Campaign \`${gameObject.title}\` has been archived.`);
-                            return;
-                        });
+                        _archiveChannels(gameObject.title, msg);
+                        db.archiveGame(gameObject.title);
+                        msg.channel.send(`Campaign \`${gameObject.title}\` has been archived.`);
+                        return;
                     }
                     break;
             }
@@ -515,18 +479,26 @@ function _generateEndUI(gameObject, msg) {
     });
 }
 
+/**
+ * Allows the user to end the game (delete all files or archive it).
+ * @param {string[]} rawInput The raw user input.
+ * @param {object} msg Contains information about the command sent by the player through discord.
+ */
 function endGame(rawInput, msg) {
     let gameName = _getGameName(rawInput);
-    getInfo.getGameInfo(gameName, msg, gameObject => {
-        if (!_isHost(gameObject.host, msg.author.username)) {
-            return error.error("Only the host of the game can perform this action.", null, msg);
-        } else if (gameObject.archived) {
-            return error.error("The game is archived.", "You will need to manually delete the files.", msg);
+    db.getGameInfo(gameName, gameObject => {
+        if (!_checkIfModifiable(gameObject, msg)) {
+            return;
         }
         _generateEndUI(gameObject, msg);
     });
 }
 
+/**
+ * Disables everyone from typing into the channels.
+ * @param {string} gameName The name of the game.
+ * @param {object} msg Contains information about the command sent by the player through discord.
+ */
 function _pauseChannel(gameName, msg) {
     try {
         msg.guild.channels.cache.find(name => name.name === `${gameName}_campaign`).overwritePermissions([
@@ -561,13 +533,20 @@ function _pauseChannel(gameName, msg) {
     }
 }
 
+/**
+ * Pauses the game if it is active.
+ * @param {string[]} rawInput The raw user input.
+ * @param {object} msg Contains information about the command sent by the player through discord.
+ */
 function pauseGame(rawInput, msg) {
     let gameName = _getGameName(rawInput);
-    getInfo.getGameInfo(gameName, msg, gameObject => {
+    db.getGameInfo(gameName, gameObject => {
+        if (!_checkIfModifiable(gameObject, msg)) {
+            return;
+        }
         if (gameObject.activeGame) {
-            gameObject.activeGame = false;
+            db.pauseGame(gameName);
             _pauseChannel(gameName, msg);
-            writeInfo.updateGame(gameObject, msg);
             msg.channel.send(`\`${gameObject.title}\` has been paused.`);
         } else {
             return error.error("This is not an active game.", `\`!play ${gameName}\` to set it as an active game.`, msg);
@@ -575,6 +554,12 @@ function pauseGame(rawInput, msg) {
     });
 }
 
+/**
+ * Allows players to type into the game channel.
+ * @param {string} gameName The game name.
+ * @param {object} msg Contains information about the command sent by the player through discord.
+ * @param {function} callback The callback function.
+ */
 function _playChannel(gameName, msg, callback) {
     try {
         msg.guild.channels.cache.find(name => name.name === `${gameName}_campaign`).overwritePermissions([
@@ -624,21 +609,46 @@ function _playChannel(gameName, msg, callback) {
     }
 }
 
+/**
+ * Sets the game as active.
+ * @param {string} rawInput The raw user input.
+ * @param {object} msg Contains information about the command sent by the player through discord.
+ */
 function playGame(rawInput, msg) {
     let gameName = _getGameName(rawInput);
-    _checkForActiveGame(msg, isActive => {
+    db.getActiveGame(isActive => {
         if (isActive) {
-            return;
+            return error.error(`Campaign \`${isActive.title}\` is currently active.`, `Notify ${isActive.host} to \`!pause ${isActive.title}\` or \`!end ${isActive.title}\`.`, msg);
         }
-        getInfo.getGameInfo(gameName, msg, gameObject => {
-            gameObject.activeGame = true;
+        db.getGameInfo(gameName, gameObject => {
+            if (!_checkIfModifiable(gameObject, msg)) {
+                return;
+            }
+            db.playGame(gameName);
             _playChannel(gameObject.title, msg, () => {
-                writeInfo.updateGame(gameObject, msg, () => {
-                    msg.channel.send(`\`${gameObject.title}\` is now the active game.`);
-                });
+                msg.channel.send(`\`${gameObject.title}\` is now the active game.`);
             });
         });
     });
+}
+
+/**
+ * Checks if the game can be modified.
+ * @param {object} gameObject The game object.
+ * @param {object} msg Contains information about the command sent by the player through discord.
+ */
+function _checkIfModifiable(gameObject, msg) {
+    if (!gameObject) {
+        error.error("This game does not exist.", `\`!create ${gameName}\` to start a new game.`, msg);
+        return false;
+    } else if (gameObject.archived) {
+        error.error("This game is archived.", "Archived games cannot be modified.", msg);
+        return false;
+    } else if (!_isHost(gameObject.host, msg.author.username)) {
+        error.error("Only the host can modify the status of the game", `Contact \`${gameObject.host}\` to help you out.`, msg);
+        return false;
+    }
+    return true;
 }
 
 exports.setupGame = setupGame;
