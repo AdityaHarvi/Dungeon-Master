@@ -75,7 +75,7 @@ function _getMoreInfoClassSelectionEmbed(playerName) {
             {name: "🧙 Archmage", value: "❤️20 | 💪3 | 🧪8", inline: true},
             {name: "🎸 Bard", value: "❤️25 | 💪2 | 🧪4", inline: true}
         )
-        .setFooter("!help class if you want to read more!")
+        .setFooter("'!help class' if you want to read more!")
 }
 
 function _getClassSelectionEmbed(playerName) {
@@ -93,11 +93,17 @@ function _getClassSelectionEmbed(playerName) {
             {name: "🧙 Archmage", value: "\u200b", inline: true},
             {name: "🎸 Bard", value: "\u200b", inline: true}
         )
-        .setFooter("!help class if you want to read more!")
+        .setFooter("'!help class' if you want to read more!")
 }
 
-function _isPlayer(playerName, user) {
-    return playerName === user;
+function _canModify(host, playerName, user) {
+    return playerName === user || host === user;
+}
+
+function _sendConfirmation(gameName, playerName, selectedClass, classEmbed, msg) {
+    classEmbed.delete();
+    let playerChannel = msg.guild.channels.cache.find(channel => channel.name === `${gameName}_player_channel`);
+    playerChannel.send(`\`${playerName}\` has chosen the \`${selectedClass}\` class. Do \`!info\` to check out your inventory.`);
 }
 
 /**
@@ -107,11 +113,11 @@ function _isPlayer(playerName, user) {
  */
 function generateClassSelectionUI(gameObject, playerName, msg) {
     const selectionEmbed = _getClassSelectionEmbed(playerName);
-    const tempUserInfo = {};
+    const moreInfoEmbed = _getMoreInfoClassSelectionEmbed(playerName);
+    let inputUserName;
     let infoFlag = false;
 
     let playerObject = {};
-    // playerObject = _classSelection(playerClass, playerObject);
     playerObject.game = gameObject.title;
     playerObject.name = playerName;
     playerObject.spells = [];
@@ -122,11 +128,9 @@ function generateClassSelectionUI(gameObject, playerName, msg) {
     playerObject.journal = [];
     playerObject.maxInventory = 15;
 
-    // writeInfo.writeInfo(playerObject, msg, () => {
-    //     displayInfo.displayplayerObject(playerObject.name, msg);
-    //     msg.channel.send(`Your ${playerObject.class} character has been created. Do \`!info\` to view your stats.`);
-    // });
-    // Set the message and setup emotes.
+    // FIXME, generate the INFO screen for players + save info to the DB.
+
+    // Send the message and setup emotes.
     msg.channel.send(selectionEmbed).then(async classEmbed => {
         await classEmbed.react("🛡️");
         await classEmbed.react("⚔️");
@@ -138,7 +142,7 @@ function generateClassSelectionUI(gameObject, playerName, msg) {
         await classEmbed.react("ℹ️");
 
         const filter = (reaction, user) => {
-            tempUserInfo.name = user.username;
+            inputUserName = user.username;
             return ["🛡️","⚔️","🪄","☀️","⚕️","🧙","🎸","ℹ️"].includes(reaction.emoji.name);
         }
 
@@ -147,16 +151,56 @@ function generateClassSelectionUI(gameObject, playerName, msg) {
         collector.on('collect', reaction => {
             switch (reaction.emoji.name) {
                 case "ℹ️":
-                    if (_isPlayer(playerName, tempUserInfo.name)) {
+                    if (_canModify(gameObject.host, playerName, inputUserName)) {
                         if (infoFlag) {
                             infoFlag = false;
-                            const updatedEmbed = _getClassSelectionEmbed(playerName);
-                            classEmbed.edit(updatedEmbed);
+                            classEmbed.edit(selectionEmbed);
                         } else {
                             infoFlag = true;
-                            const updatedEmbed = _getMoreInfoClassSelectionEmbed(playerName);
-                            classEmbed.edit(updatedEmbed);
+                            classEmbed.edit(moreInfoEmbed);
                         }
+                    }
+                    break;
+                case "🛡️":
+                    if (_canModify(gameObject.host, playerName, inputUserName)) {
+                        playerObject = _classSelection("juggernaut", playerObject);
+                        _sendConfirmation(gameObject.title, playerName, "juggernaut", classEmbed, msg);
+                    }
+                    break;
+                case "⚔️":
+                    if (_canModify(gameObject.host, playerName, inputUserName)) {
+                        playerObject = _classSelection("assassin", playerObject);
+                        _sendConfirmation(gameObject.title, playerName, "assassin", classEmbed, msg);
+                    }
+                    break;
+                case "🪄":
+                    if (_canModify(gameObject.host, playerName, inputUserName)) {
+                        playerObject = _classSelection("wizard", playerObject);
+                        _sendConfirmation(gameObject.title, playerName, "wizard", classEmbed, msg);
+                    }
+                    break;
+                case "☀️":
+                    if (_canModify(gameObject.host, playerName, inputUserName)) {
+                        playerObject = _classSelection("paladin", playerObject);
+                        _sendConfirmation(gameObject.title, playerName, "paladin", classEmbed, msg);
+                    }
+                    break;
+                case "⚕️":
+                    if (_canModify(gameObject.host, playerName, inputUserName)) {
+                        playerObject = _classSelection("cleric", playerObject);
+                        _sendConfirmation(gameObject.title, playerName, "cleric", classEmbed, msg);
+                    }
+                    break;
+                case "🧙":
+                    if (_canModify(gameObject.host, playerName, inputUserName)) {
+                        playerObject = _classSelection("archmage", playerObject);
+                        _sendConfirmation(gameObject.title, playerName, "archmage", classEmbed, msg);
+                    }
+                    break;
+                case "🎸":
+                    if (_canModify(gameObject.host, playerName, inputUserName)) {
+                        playerObject = _classSelection("bard", playerObject);
+                        _sendConfirmation(gameObject.title, playerName, "bard", classEmbed, msg);
                     }
                     break;
             }

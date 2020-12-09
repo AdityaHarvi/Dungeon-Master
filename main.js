@@ -27,6 +27,7 @@ const Discord = require("discord.js"),
     adminRoll = require('./admin/rollForAll'),
     ally = require('./admin/ally'),
     purge = require('./admin/purge');
+let activeGameObject;
 
 // Log into the bot.
 client.login(getToken.getToken());
@@ -35,8 +36,29 @@ client.login(getToken.getToken());
 client.on('ready', () => {
     console.log('System is online.');
     database.createDB();
+    database.getActiveGame(gameObject => {
+        activeGameObject = gameObject;
+    });
     client.user.setActivity('!help');
 });
+
+function _errorChecks(gameObject, msg) {
+    if (!gameObject) {
+        error.error("Error finding an active game.", "Create one with `!play <campaign name>`.", msg);
+        return false;
+    }
+
+    if (msg.channel.id != gameObject.hostChannel && msg.channel.id != gameObject.playerChannel) {
+        error.error(`This command can only be run in \`${gameObject.title}\`'s game channels.`, null, msg);
+        return false;
+    }
+
+    if (!gameObject.players.includes(msg.author.username)) {
+        msg.react("❌");
+        msg.author.send(`Unfortunately, you are not a part of the active game \`${gameObject.title}\`.`);
+        return false;
+    }
+}
 
 client.on('message', msg => {
     // Error handling to ensure bot does not respond to itself and to only reply when commands are said in specific channels.
@@ -44,14 +66,17 @@ client.on('message', msg => {
 
     let args = msg.content.substring(PREFIX.length).split(" ");
     args[0] = args[0].toLowerCase();
-    classSelection.generateClassSelectionUI({}, msg.author.username, msg);
 
+    // classSelection.generateClassSelectionUI({}, msg.author.username, msg);
 
     switch(args[0]) {
+        case "help":
+            help.baseMenu(msg);
+            break;
         // Handles game creation / game status handeling:
         case "create":
             (args[1]) ?
-                gameHandler.setupGame(args, client, msg) :
+                gameHandler.setupGame(args, msg) :
                 error.error("What is the campaign name?", "`!create <Campaign Name>`", msg);
             break;
         case "pause":
@@ -70,6 +95,7 @@ client.on('message', msg => {
                 error.error("What is the campaign name?", "`!play <Campaign Name>`", msg);
             break;
         default:
-            error.error("This is an unknown command.", "`!help` for a list of commands.", msg);;
+            msg.react("❓");
+            msg.author.send(`\`${msg.content}\` is an unknown command. \`!help\` to get a list of available commands.`);
     }
 })

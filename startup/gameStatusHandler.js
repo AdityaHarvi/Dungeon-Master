@@ -123,7 +123,7 @@ function _createChannels(gameObject, msg, callback) {
 
                 let hostRole = roles.cache.find(role => role.name === `${gameObject.title}_host`);
                 let playerRole = roles.cache.find(role => role.name === `${gameObject.title}_player`);
-                channel.send(`${hostRole} ${playerRole} here is a private channel where you can run bot commands.`);
+                channel.send(`${hostRole} ${playerRole} here is a private channel where you can run bot commands. \`!help\` to get started.`);
                 gameObject.playerChannel = channel.id;
 
                 callback(gameObject);
@@ -219,7 +219,7 @@ function _setRoles(gameObject, client, msg, callback) {
  * @param {object} client The bot / client.
  * @param {object} msg Contains information about the command sent by the player through discord.
  */
-function _generateCreationUI(gameName, client, msg) {
+function _generateCreationUI(gameName, msg) {
     let gameObject = {};
 
     gameObject.title = gameName;
@@ -233,7 +233,7 @@ function _generateCreationUI(gameName, client, msg) {
     gameObject.activeGame = 1;
 
     const setupEmbed = _getGameStartupEmbed(gameObject);
-    const tempUserInfo = {};
+    let inputUserName = {};
 
     // Set the message and setup emotes.
     msg.channel.send(setupEmbed).then(async gameSetupEmbed => {
@@ -243,7 +243,7 @@ function _generateCreationUI(gameName, client, msg) {
         await gameSetupEmbed.react("🗑️");
 
         const filter = (reaction, user) => {
-            tempUserInfo.name = user.username;
+            inputUserName = user.username;
             return ["✅", "❌", "👍", "🗑️"].includes(reaction.emoji.name);
         }
 
@@ -253,24 +253,24 @@ function _generateCreationUI(gameName, client, msg) {
             switch (reaction.emoji.name) {
                 case "✅":
                     // Player wants to join the campaign.
-                    if (!gameObject.players.includes(tempUserInfo.name) && !_isHost(gameObject.host, tempUserInfo.name)) {
-                        if (gameObject.declined.includes(tempUserInfo.name)) {
+                    if (!gameObject.players.includes(inputUserName) && !_isHost(gameObject.host, inputUserName)) {
+                        if (gameObject.declined.includes(inputUserName)) {
                             // Remove name from the 'declined' list.
-                            gameObject.declined = gameObject.declined.filter(newArray => newArray !== tempUserInfo.name);
+                            gameObject.declined = gameObject.declined.filter(newArray => newArray !== inputUserName);
                         }
-                        gameObject.players.push(tempUserInfo.name);
+                        gameObject.players.push(inputUserName);
                         const updatedEmbed = _getGameStartupEmbed(gameObject, gameObject.players, gameObject.declined);
                         gameSetupEmbed.edit(updatedEmbed);
                     }
                     break;
                 case "❌":
                     // Player does not want to join the campaign.
-                    if (!gameObject.declined.includes(tempUserInfo.name) && !_isHost(gameObject.host, tempUserInfo.name)) {
-                        if (gameObject.players.includes(tempUserInfo.name)) {
+                    if (!gameObject.declined.includes(inputUserName) && !_isHost(gameObject.host, inputUserName)) {
+                        if (gameObject.players.includes(inputUserName)) {
                             // Remove name from the 'accepted' list.
-                            gameObject.players = gameObject.players.filter(newArray => newArray !== tempUserInfo.name);
+                            gameObject.players = gameObject.players.filter(newArray => newArray !== inputUserName);
                         }
-                        gameObject.declined.push(tempUserInfo.name);
+                        gameObject.declined.push(inputUserName);
                         const updatedEmbed = _getGameStartupEmbed(gameObject, gameObject.players, gameObject.declined);
                         gameSetupEmbed.edit(updatedEmbed);
                     }
@@ -278,19 +278,20 @@ function _generateCreationUI(gameName, client, msg) {
                 case "👍":
                     // FIXME
                     // Host can start the game from there. This will generate the game file.
-                    if (_isHost(gameObject.host, tempUserInfo.name) /*&& gameObject.players.length > 0*/) {
+                    if (_isHost(gameObject.host, inputUserName) /*&& gameObject.players.length > 0*/) {
                         db.getActiveGame(isActive => {
                             if (isActive) {
                                 return error.error(`Campaign \`${isActive.title}\` is currently active.`, `Notify ${isActive.host} to \`!pause ${isActive.title}\` or \`!end ${isActive.title}\`.`, msg);
                             }
-                            gameSetupEmbed.delete()
+                            gameSetupEmbed.delete();
 
-                            _setRoles(gameObject, client, msg, newObject => {
+                            _setRoles(gameObject, msg.client, msg, newObject => {
                                 db.insertGame(newObject);
                                 msg.channel.send(`Campaign \`${newObject.title}\` has been created.`);
 
                                 newObject.players.forEach(playerName => {
-                                    player.generateClassSelectionUI(gameObject.title, playerName, msg);
+                                    // FIXME, The messages need to be sent to the proper channel.
+                                    player.generateClassSelectionUI(newObject.title, playerName, msg);
                                 });
                             });
                             return;
@@ -299,8 +300,8 @@ function _generateCreationUI(gameName, client, msg) {
                     break;
                 case "🗑️":
                     // Host can cancel the campaign.
-                    if (_isHost(gameObject.host, tempUserInfo.name)) {
-                        gameSetupEmbed.delete()
+                    if (_isHost(gameObject.host, inputUserName)) {
+                        gameSetupEmbed.delete();
                         msg.channel.send(`Campaign \`${gameObject.title}\` has been cancelled.`);
                         return;
                     }
@@ -317,7 +318,7 @@ function _generateCreationUI(gameName, client, msg) {
  * @param {object} client The bot / client.
  * @param {object} msg Contains information about the command sent by the player through discord.
  */
-function setupGame(rawInput, client, msg) {
+function setupGame(rawInput, msg) {
     let gameName = _getGameName(rawInput);
 
     db.getGameInfo(gameName, gameObject => {
@@ -330,7 +331,7 @@ function setupGame(rawInput, client, msg) {
                 return error.error(`Campaign \`${isActive.title}\` is currently active.`, `Notify ${isActive.host} to \`!pause ${isActive.title}\` or \`!end ${isActive.title}\`.`, msg);
             }
 
-            _generateCreationUI(gameName, client, msg);
+            _generateCreationUI(gameName, msg);
         });
     })
 }
@@ -347,7 +348,7 @@ function _getGameEndEmbed(gameObject) {
         .setDescription("Do you want to delete or preserve the game data?")
         .addFields(
             {name: "✅ Full Wipe", value: "This will delete all related channels + roles + game data.", inline: true},
-            {name: "☑️ Partial Wipe", value: "Related channels will be archived and available for all to view + game files will be saved. Roles will be deleted. (Perfect if you want to keep the memories)", inline: true}
+            {name: "☑️ Preserve", value: "Related channels will be archived and available for all to view + game files will be saved. Roles will be deleted. (Perfect if you want to keep the memories)", inline: true}
         )
         .setFooter("Or you can ❌ to cancel.")
 }
@@ -421,7 +422,7 @@ function _archiveChannels(gameName, msg) {
  */
 function _generateEndUI(gameObject, msg) {
     const endEmbed = _getGameEndEmbed(gameObject);
-    const tempUserInfo = {};
+    let inputUserName;
     // Set the message and setup emotes.
     msg.channel.send(endEmbed).then(async gameSetupEmbed => {
         await gameSetupEmbed.react("✅");
@@ -429,7 +430,7 @@ function _generateEndUI(gameObject, msg) {
         await gameSetupEmbed.react("❌");
 
         const filter = (reaction, user) => {
-            tempUserInfo.name = user.username;
+            inputUserName = user.username;
             return ["✅", "❌", "☑️"].includes(reaction.emoji.name);
         }
 
@@ -439,7 +440,7 @@ function _generateEndUI(gameObject, msg) {
             switch (reaction.emoji.name) {
                 case "✅":
                     // Player wants to perform a full wipe on the game.
-                    if (_isHost(gameObject.host, tempUserInfo.name)) {
+                    if (_isHost(gameObject.host, inputUserName)) {
                         gameSetupEmbed.delete();
                         db.deleteGame(gameObject.title);
                         _deleteChannels(gameObject.title, msg);
@@ -450,7 +451,7 @@ function _generateEndUI(gameObject, msg) {
                     break;
                 case "❌":
                     // Player does not want to cancel the game.
-                    if (_isHost(gameObject.host, tempUserInfo.name)) {
+                    if (_isHost(gameObject.host, inputUserName)) {
                         gameSetupEmbed.delete();
                         msg.channel.send(`No action taken.`);
                         return;
@@ -458,7 +459,7 @@ function _generateEndUI(gameObject, msg) {
                     break;
                 case "☑️":
                     // Archive game.
-                    if (_isHost(gameObject.host, tempUserInfo.name)) {
+                    if (_isHost(gameObject.host, inputUserName)) {
                         gameSetupEmbed.delete();
                         _deleteRoles(gameObject.title, msg);
                         _archiveChannels(gameObject.title, msg);

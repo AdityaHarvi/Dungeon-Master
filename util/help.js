@@ -1,161 +1,126 @@
-/**
- * Populates the fields for the combat information embed.
- */
-function getCombatFields() {
-    let fields = [];
-
-    fields[0] = {name: '`!attack`', value: 'Auto calculates your damage. If you have the necessary abilities, you can do `!attack <risky/super/ultra/double>` to do special attacks.', inline: true};
-    fields[1] = {name: '`!cast <spell> <player (if healing)>`', value: 'Cast a spell. Auto rolls dice.', inline: true};
-    fields[2] = {name: '`!bleed <#>`', value: 'Gives you mana at the cost of 3* as much health.', inline: true};
-    fields[3] = {name: '`!roll <optional: dice size>`', value: 'Rolls a requested sized dice. Defaults to 20.', inline: true};
-    fields[4] = {name: '`!activate <ability>`', value: 'Activates an ability.', inline: true};
-    fields[5] = {name: '`!coinflip`', value: 'Flip a coin!', inline: true};
-
-    return fields;
-}
+const ui = require("./UImethods"),
+    Discord = require("discord.js");
 
 /**
  * Combat information menu. Shows all the commands related to combat.
- * @param {object} msg Contains information about the command sent by the player through discord.
  */
-function combatHelpMenu(msg) {
-    const combatHelpEmbed = {
-        color: 0x42d7f5,
-        title: '⚔️ Combat Commands Menu ⚔️',
-        author: {
-            name: 'Dungeon master',
-            icon_url: 'https://i.imgur.com/MivKiKL.png'
-        },
-        thumbnail: {
-            url: 'https://i.imgur.com/MivKiKL.png',
-        },
-        fields: getCombatFields(),
-        footer: {
-            text: 'All commands are lowercase.'
-        }
-    };
-
-    return msg.channel.send({embed: combatHelpEmbed});
-}
-
-/**
- * Populates the fields for the inventory information embed.
- */
-function getInventoryCommandFields() {
-    let fields = [];
-
-    fields[0] = {name: '`!equip <item>`', value: 'Equips an item.', inline: true};
-    fields[1] = {name: '`!unequip`', value: 'Unequips an item.', inline: true};
-    fields[2] = {name: '`!use <item>`', value: 'Your character will use a consumable item.', inline: true};
-    fields[3] = {name: '`!give <player> <item>`', value: 'Give another player an item.', inline: true};
-    fields[4] = {name: '`!drop <item>`', value: 'Drops an item from your inventory.', inline: true};
-    fields[5] = {name: '`!journal`', value: 'Read your private journal!', inline: true};
-    fields[6] = {name: '`!add-note <entry name> <message>`', value: 'Add something to your journal to help you remember!', inline: true};
-    fields[7] = {name: '`!remove-note <entry name>`', value: 'Scratch out an entry form your journal.', inline: true};
-
-    return fields;
+function _getCombatMenu() {
+    return new Discord.MessageEmbed()
+        .setColor("0x42d7f5")
+        .setTitle("⚔️ Combat Commands Menu ⚔️")
+        .setAuthor("Dungeon Master", "https://i.imgur.com/MivKiKL.png")
+        .setThumbnail("https://imgur.com/G8zR8Gd.png")
+        .setDescription("Clicking the reaction icons can take you to the respective page.\nClicking 🌐 will return you to the home screen.")
+        .addFields(
+            {name: "`!attack`", value: "Auto calculates your damage. If you have the necessary abilities, you can do `!attack <risky/super/ultra/double>` to do special attacks.", inline: true},
+            {name: "`!cast <spell> <player (if healing)>`", value: "Cast a spell. Auto rolls dice.", inline: true},
+            {name: "`!bleed <#>`", value: "Gives you mana at the cost of 3* as much health.", inline: true},
+            {name: "`!roll <optional: dice size>`", value: "Rolls a requested sized dice. Defaults to 20.", inline: true},
+            {name: "`!activate <ability>`", value: "Activates an ability.", inline: true},
+            {name: "`!coinflip`", value: "Cant decide on what to do? Flip a coin!", inline: true}
+        )
+        .setFooter("All commands are lowercase.")
 }
 
 /**
  * Inventory commands menu. Shows all the commands related to combat.
- * @param {object} msg Contains information about the command sent by the player through discord.
  */
-function inventoryHelpMenu(msg) {
-    const inventoryHelpEmbed = {
-        color: 0x42f5b9,
-        title: '🎒 Inventory Commands Menu 🎒',
-        author: {
-            name: 'Dungeon master',
-            icon_url: 'https://i.imgur.com/MivKiKL.png'
-        },
-        thumbnail: {
-            url: 'https://i.imgur.com/MivKiKL.png',
-        },
-        fields: getInventoryCommandFields(),
-        footer: {
-            text: 'All commands are lowercase.'
-        }
-    };
-
-    return msg.channel.send({embed: inventoryHelpEmbed});
-}
-
-/**
- * Populates the fields for the information commansd embed.
- */
-function getInfoCommandFields() {
-    let fields = [];
-
-    fields[0] = {name: '`!help`', value: 'Help page', inline: true};
-    fields[1] = {name: '`!join`', value: 'Setup a character to join the game.', inline: true};
-    fields[2] = {name: '`!info`', value: 'Character information for page.', inline: true};
-    fields[3] = {name: '`!item <item>`', value: 'Gets info about the item.', inline: true};
-    fields[4] = {name: '`!spell <spell>`', value: 'Gets info about the spell.', inline: true};
-    fields[5] = {name: '`!ability <ability>`', value: 'Gets info about the ability.', inline: true};
-    fields[6] = {name: '`!class <class name>`', value: 'Gets info about the class.', inline: true};
-
-    return fields;
+function _getInventoryMenu() {
+    return new Discord.MessageEmbed()
+        .setColor("0x42f5b9")
+        .setTitle("🎒 Inventory Commands Menu 🎒")
+        .setAuthor("Dungeon Master", "https://i.imgur.com/MivKiKL.png")
+        .setThumbnail("https://imgur.com/SVAS8pY.png")
+        .setDescription("Clicking the reaction icons can take you to the respective page.\nClicking 🌐 will return you to the home screen.")
+        .addFields(
+            {name: "`!equip <item>`", value: "Equips an item.", inline: true},
+            {name: "`!unequip`", value: "Unequips an item.", inline: true},
+            {name: "`!use <item>`", value: "Your character will use a consumable item.", inline: true},
+            {name: "`!give <player> <item>`", value: "Give another player an item.", inline: true},
+            {name: "`!drop <item>`", value: "Drops an item from your inventory.", inline: true},
+            {name: "`!journal`", value: "Read your private journal!", inline: true},
+            {name: "`!add-note <entry name> <message>`", value: "Add something to your journal to help you remember!", inline: true},
+            {name: "`!remove-note <entry name>`", value: "Scratch out an entry form your journal.", inline: true}
+        )
+        .setFooter("All commands are lowercase.")
 }
 
 /**
  * Information commands menu. Shows all the commands that give information about a game mechanic.
- * @param {object} msg Contains information about the command sent by the player through discord.
  */
-function infoCommandHelpMenu(msg) {
-    const infoCommandsHelpEmbed = {
-        color: 0x54f542,
-        title: '📋 Information Commands Menu 📋',
-        author: {
-            name: 'Dungeon master',
-            icon_url: 'https://i.imgur.com/MivKiKL.png'
-        },
-        thumbnail: {
-            url: 'https://i.imgur.com/MivKiKL.png',
-        },
-        fields: getInfoCommandFields(),
-        footer: {
-            text: 'All commands are lowercase.'
-        }
-    };
-
-    return msg.channel.send({embed: infoCommandsHelpEmbed});
+function _getInfoMenu() {
+    return new Discord.MessageEmbed()
+        .setColor("0x54f542")
+        .setTitle("📋 Information Commands Menu 📋")
+        .setAuthor("Dungeon Master", "https://i.imgur.com/MivKiKL.png")
+        .setThumbnail("https://imgur.com/bYatIYu.png")
+        .setDescription("Clicking the reaction icons can take you to the respective page.\nClicking 🌐 will return you to the home screen.")
+        .addFields(
+            {name: "`!help`", value: "Help page", inline: true},
+            {name: "`!info`", value: "Character information for page.", inline: true},
+            {name: "`!item <item>`", value: "Gets info about the item.", inline: true},
+            {name: "`!spell <spell>`", value: "Gets info about the spell.", inline: true},
+            {name: "`!ability <ability>`", value: "Gets info about the ability.", inline: true},
+            {name: "`!class <class name>`", value: "Gets info about the class.", inline: true}
+        )
+        .setFooter("All commands are lowercase.")
 }
 
-/**
- * Populates the fields for the base help page.
- */
-function getHelpFields() {
-    let fields = [];
-
-    fields[0] = {name: '📋 **Information Commands**', value: '`!help info`'};
-    fields[1] = {name: '🎒 **Inventory Commands**', value: '`!help inventory`'};
-    fields[2] = {name: '⚔️ **Combat Commands**', value: '`!help combat`'};
-
-    return fields;
+function _getBaseHelpMenu() {
+    return new Discord.MessageEmbed()
+        .setColor("0x10A72E")
+        .setTitle("**Help Menu**")
+        .setAuthor("Dungeon Master", "https://i.imgur.com/MivKiKL.png")
+        .setThumbnail("https://imgur.com/GKzfjCg.png")
+        .setDescription("Clicking the reaction icons can take you to the respective page.\nClicking 🌐 will return you to the home screen.")
+        .addFields(
+            {name: "📋 **Information**", value: "\u200b", inline: true},
+            {name: "🎒 **Inventory**", value: "\u200b", inline: true},
+            {name: "⚔️ **Combat**", value: "\u200b", inline: true}
+        )
+        .setFooter("All commands are lowercase.")
 }
 
-/**
- * Displays the sub-menus.
- * @param {object} msg Contains information about the command sent by the player through discord.
- */
-function helpMenu(msg) {
-    const helpEmbed = {
-        color: 0x10A72E,
-        title: 'Help Menu',
-        author: {
-            name: 'Dungeon master',
-            icon_url: 'https://i.imgur.com/MivKiKL.png'
-        },
-        thumbnail: {
-            url: 'https://i.imgur.com/MivKiKL.png',
-        },
-        fields: getHelpFields(),
-        footer: {
-            text: 'All commands are lowercase.'
-        }
-    };
+// FIXME ADD IN ADMIN COMMANDS
+function generateBaseHelpMenu(msg) {
+    const baseMenu = _getBaseHelpMenu();
+    const combatMenu = _getCombatMenu();
+    const inventoryMenu = _getInventoryMenu();
+    const infoMenu = _getInfoMenu();
+    let inputUserName;
 
-    return msg.channel.send({embed: helpEmbed});
+    // Send the message and setup emotes.
+    msg.channel.send(baseMenu).then(async helpMenu => {
+        await helpMenu.react("📋");
+        await helpMenu.react("🎒");
+        await helpMenu.react("⚔️");
+        await helpMenu.react("🌐");
+
+        const filter = (reaction, user) => {
+            inputUserName = user.username;
+            return ["📋","🎒","⚔️","🌐"].includes(reaction.emoji.name) && !user.bot;
+        }
+
+        // Handle the reactions.
+        const collector = helpMenu.createReactionCollector(filter);
+        collector.on("collect", reaction => {
+            switch (reaction.emoji.name) {
+                case "📋":
+                    helpMenu.edit(infoMenu);
+                    break;
+                case "🎒":
+                    helpMenu.edit(inventoryMenu);
+                    break;
+                case "⚔️":
+                    helpMenu.edit(combatMenu);
+                    break;
+                case "🌐":
+                    helpMenu.edit(baseMenu);
+                    break;
+            }
+            ui.removeReaction(reaction);
+        });
+    });
 }
 
 /**
@@ -167,60 +132,61 @@ function getClassFields(className) {
         classObject = {};
 
     switch(className) {
-        case 'juggernaut':
-            classObject.url = 'https://i.imgur.com/ChxDqEE.png';
-            fields[0] = {name: '|-------HEALTH-------|', value: `|‾‾‾‾‾‾‾‾‾‾( 40 )‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[1] = {name: '|-----STRENGTH-----|', value: `|‾‾‾‾‾‾‾‾‾‾( 0 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[2] = {name: '|--------MANA--------|', value: `|‾‾‾‾‾‾‾‾‾‾( 0 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[3] = {name: '\u200b', value: 'This character can endure massive damage. Shrug off even the largest of hits.'};
+        case "juggernaut":
+            classObject.url = "https://i.imgur.com/ChxDqEE.png";
+            fields[0] = {name: "|-------HEALTH-------|", value: `|‾‾‾‾‾‾‾‾‾‾( 40 )‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[1] = {name: "|-----STRENGTH-----|", value: `|‾‾‾‾‾‾‾‾‾‾( 0 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[2] = {name: "|--------MANA--------|", value: `|‾‾‾‾‾‾‾‾‾‾( 0 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[3] = {name: "\u200b", value: "This character can endure massive damage. Shrug off even the largest of hits."};
             break;
-        case 'paladin':
-            classObject.url = 'https://i.imgur.com/BLhcLTS.gif';
-            fields[0] = {name: '|-------HEALTH-------|', value: `|‾‾‾‾‾‾‾‾‾‾( 30 )‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[1] = {name: '|-----STRENGTH-----|', value: `|‾‾‾‾‾‾‾‾‾‾( 6 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[2] = {name: '|--------MANA--------|', value: `|‾‾‾‾‾‾‾‾‾‾( 2 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[3] = {name: '\u200b', value: 'Take hits and deal damage, you can use your shield as good as your sword.'};
+        case "paladin":
+            classObject.url = "https://i.imgur.com/BLhcLTS.gif";
+            fields[0] = {name: "|-------HEALTH-------|", value: `|‾‾‾‾‾‾‾‾‾‾( 30 )‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[1] = {name: "|-----STRENGTH-----|", value: `|‾‾‾‾‾‾‾‾‾‾( 6 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[2] = {name: "|--------MANA--------|", value: `|‾‾‾‾‾‾‾‾‾‾( 2 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[3] = {name: "\u200b", value: "Take hits and deal damage, you can use your shield as good as your sword."};
             break;
-        case 'assassin':
-            classObject.url = 'https://i.imgur.com/6UANXPh.png';
-            fields[0] = {name: '|------HEALTH-------|', value: `|‾‾‾‾‾‾‾‾‾‾( 18 )‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[1] = {name: '|-----STRENGTH-----|', value: `|‾‾‾‾‾‾‾‾‾‾( 6 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[2] = {name: '|--------MANA-------|', value: `|‾‾‾‾‾‾‾‾‾‾( 0 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[3] = {name: '\u200b', value: 'Use the shadows to your advantage. You know the enemies weakpoints and can perform critical hits with ease. Careful not to fight directly through, you cannot sustain a fight for long.'};
+        case "assassin":
+            classObject.url = "https://i.imgur.com/6UANXPh.png";
+            fields[0] = {name: "|------HEALTH-------|", value: `|‾‾‾‾‾‾‾‾‾‾( 18 )‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[1] = {name: "|-----STRENGTH-----|", value: `|‾‾‾‾‾‾‾‾‾‾( 6 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[2] = {name: "|--------MANA-------|", value: `|‾‾‾‾‾‾‾‾‾‾( 0 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[3] = {name: "\u200b", value: "Use the shadows to your advantage. You know the enemies weakpoints and can perform critical hits with ease. Careful not to fight directly through, you cannot sustain a fight for long."};
             break;
-        case 'wizard':
-            classObject.url = 'https://i.imgur.com/d5VfPOS.png';
-            fields[0] = {name: '|------HEALTH-------|', value: `|‾‾‾‾‾‾‾‾( 15 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[1] = {name: '|----STRENGTH-----|', value: `|‾‾‾‾‾‾‾‾‾‾( 0 )‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[2] = {name: '|-------MANA--------|', value: `|‾‾‾‾‾‾‾‾( 14 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[3] = {name: '\u200b', value: 'As a master of the dark arts, you control the elements. Destroy your enemies with overwhelming power. Fight from the rear ranks and use your range to your advantage, a wizard cannot survive for long while they are alone.'};
+        case "wizard":
+            classObject.url = "https://i.imgur.com/d5VfPOS.png";
+            fields[0] = {name: "|------HEALTH-------|", value: `|‾‾‾‾‾‾‾‾( 15 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[1] = {name: "|----STRENGTH-----|", value: `|‾‾‾‾‾‾‾‾‾‾( 0 )‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[2] = {name: "|-------MANA--------|", value: `|‾‾‾‾‾‾‾‾( 14 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[3] = {name: "\u200b", value: "As a master of the dark arts, you control the elements. Destroy your enemies with overwhelming power. Fight from the rear ranks and use your range to your advantage, a wizard cannot survive for long while they are alone."};
             break;
-        case 'cleric':
-            classObject.url = 'https://i.imgur.com/AJZas5t.png';
-            fields[0] = {name: '|-------HEALTH-------|', value: `|‾‾‾‾‾‾‾‾‾‾( 28 )‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[1] = {name: '|-----STRENGTH-----|', value: `|‾‾‾‾‾‾‾‾‾‾‾( 1 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[2] = {name: '|--------MANA--------|', value: `|‾‾‾‾‾‾‾‾‾‾( 6 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[3] = {name: '\u200b', value: 'Use the power of the divine to heal your allies and to vanquish your foes. With you on their team, your friends can never die.'};
+        case "cleric":
+            classObject.url = "https://i.imgur.com/AJZas5t.png";
+            fields[0] = {name: "|-------HEALTH-------|", value: `|‾‾‾‾‾‾‾‾‾‾( 28 )‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[1] = {name: "|-----STRENGTH-----|", value: `|‾‾‾‾‾‾‾‾‾‾‾( 1 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[2] = {name: "|--------MANA--------|", value: `|‾‾‾‾‾‾‾‾‾‾( 6 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[3] = {name: "\u200b", value: "Use the power of the divine to heal your allies and to vanquish your foes. With you on their team, your friends can never die."};
             break;
-        case 'archmage':
-            classObject.url = 'https://i.imgur.com/10DmLXk.png';
-            fields[0] = {name: '|-------HEALTH-------|', value: `|‾‾‾‾‾‾‾‾‾‾( 20 )‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[1] = {name: '|-----STRENGTH-----|', value: `|‾‾‾‾‾‾‾‾‾‾( 3 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[2] = {name: '|--------MANA--------|', value: `|‾‾‾‾‾‾‾‾‾‾( 8 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[3] = {name: '\u200b', value: 'You know the sword as well as the flames. Combat your foes with ranged and melee weapons.'};
+        case "archmage":
+            classObject.url = "https://i.imgur.com/10DmLXk.png";
+            fields[0] = {name: "|-------HEALTH-------|", value: `|‾‾‾‾‾‾‾‾‾‾( 20 )‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[1] = {name: "|-----STRENGTH-----|", value: `|‾‾‾‾‾‾‾‾‾‾( 3 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[2] = {name: "|--------MANA--------|", value: `|‾‾‾‾‾‾‾‾‾‾( 8 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[3] = {name: "\u200b", value: "You know the sword as well as the flames. Combat your foes with ranged and melee weapons."};
             break;
-        case 'bard':
-            classObject.url = 'https://i.imgur.com/znRYmxK.png';
-            fields[0] = {name: '|-------HEALTH-------|', value: `|‾‾‾‾‾‾‾‾‾‾( 25 )‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[1] = {name: '|------STRENGTH-----|', value: `|‾‾‾‾‾‾‾‾‾‾‾( 2 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[2] = {name: '|--------MANA--------|', value: `|‾‾‾‾‾‾‾‾‾‾( 4 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
-            fields[3] = {name: '\u200b', value: 'People think you\'re nothing but a drunk, but they don\'t realize your secrets. Conquer your foes with your charm... and maybe a hidden knife up your sleeve, who knows what you\'re hiding'};
+        case "bard":
+            classObject.url = "https://i.imgur.com/znRYmxK.png";
+            fields[0] = {name: "|-------HEALTH-------|", value: `|‾‾‾‾‾‾‾‾‾‾( 25 )‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[1] = {name: "|------STRENGTH-----|", value: `|‾‾‾‾‾‾‾‾‾‾‾( 2 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[2] = {name: "|--------MANA--------|", value: `|‾‾‾‾‾‾‾‾‾‾( 4 )‾‾‾‾‾‾‾‾‾‾|`, inline: true};
+            fields[3] = {name: "\u200b", value: "People think you\"re nothing but a drunk, but they don\"t realize your secrets. Conquer your foes with your charm... and maybe a hidden knife up your sleeve, who knows what you\"re hiding"};
             break;
     }
 
     classObject.fields = fields;
     return classObject;
 }
+
 
 /**
  * Displays information about the classes.
@@ -229,25 +195,25 @@ function getClassFields(className) {
  */
 function classHelpMenu(className, msg) {
     if (className) className = className.toLowerCase();
-    if (!className || (className !== 'paladin' && className !== 'juggernaut' && className !== 'assassin' && className !== 'wizard' && className !== 'cleric' && className !== 'archmage' && className !== 'bard')) {
+    if (!className || (className !== "paladin" && className !== "juggernaut" && className !== "assassin" && className !== "wizard" && className !== "cleric" && className !== "archmage" && className !== "bard")) {
         const classListEmbed = {
             color: 0xc2f542,
             title: `Class List`,
             author: {
-                name: 'Dungeon master',
-                icon_url: 'https://i.imgur.com/MivKiKL.png'
+                name: "Dungeon master",
+                icon_url: "https://i.imgur.com/MivKiKL.png"
             },
             thumbnail: {
-                url: 'https://i.imgur.com/nFdghga.png',
+                url: "https://i.imgur.com/nFdghga.png",
             },
             fields: [
-                {name: '**Juggernaut**', value: '`!class juggernaut` to learn more.', inline: true},
-                {name: '**Assassin**', value: '`!class assassin` to learn more.', inline: true},
-                {name: '**Wizard**', value: '`!class wizard` to learn more.', inline: true},
-                {name: '**Cleric**', value: '`!class cleric` to learn more.', inline: true},
-                {name: '**Paladin**', value: '`!class Paladin` to learn more.', inline: true},
-                {name: '**Archmage**', value: '`!class archmage` to learn more.', inline: true},
-                {name: '**Bard**', value: '`!class bard` to learn more.', inline: true}
+                {name: "**Juggernaut**", value: "`!class juggernaut` to learn more.", inline: true},
+                {name: "**Assassin**", value: "`!class assassin` to learn more.", inline: true},
+                {name: "**Wizard**", value: "`!class wizard` to learn more.", inline: true},
+                {name: "**Cleric**", value: "`!class cleric` to learn more.", inline: true},
+                {name: "**Paladin**", value: "`!class Paladin` to learn more.", inline: true},
+                {name: "**Archmage**", value: "`!class archmage` to learn more.", inline: true},
+                {name: "**Bard**", value: "`!class bard` to learn more.", inline: true}
             ]
         };
 
@@ -259,8 +225,8 @@ function classHelpMenu(className, msg) {
         color: 0xc2f542,
         title: `${className.charAt(0).toUpperCase() + className.slice(1)}`,
         author: {
-            name: 'Dungeon master',
-            icon_url: 'https://i.imgur.com/MivKiKL.png'
+            name: "Dungeon master",
+            icon_url: "https://i.imgur.com/MivKiKL.png"
         },
         thumbnail: {
             url: classFields.url,
@@ -271,8 +237,4 @@ function classHelpMenu(className, msg) {
     return msg.channel.send({embed: classInfoEmbed});
 }
 
-exports.helpMenu = helpMenu;
-exports.classHelpMenu = classHelpMenu;
-exports.infoCommandHelpMenu = infoCommandHelpMenu;
-exports.combatHelpMenu = combatHelpMenu;
-exports.inventoryHelpMenu = inventoryHelpMenu;
+exports.baseMenu = generateBaseHelpMenu;
