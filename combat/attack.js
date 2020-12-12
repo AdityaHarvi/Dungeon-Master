@@ -1,6 +1,6 @@
 const error = require('../util/error'),
     getInfo = require('../gameInfo/getInfo'),
-    displayInfo = require('../gameInfo/displayInfo'),
+    displayInfo = require('../displayInfo/displayInfo'),
     items = require('../inventories/items'),
     diceRoll = require('../util/diceRoll');
 

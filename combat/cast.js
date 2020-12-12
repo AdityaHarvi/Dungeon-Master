@@ -1,7 +1,7 @@
 const error = require('../util/error'),
     getInfo = require('../gameInfo/getInfo'),
     diceRoll = require('../util/diceRoll'),
-    displayInfo = require('../gameInfo/displayInfo'),
+    displayInfo = require('../displayInfo/displayInfo'),
     spells = require('../inventories/spells'),
     writeInfo = require('../gameInfo/writeInfo');
 

@@ -1,6 +1,6 @@
 const fs = require('fs'),
     error = require('../util/error'),
-    displayInfo = require('../gameInfo/displayInfo'),
+    displayInfo = require('../displayInfo/displayInfo'),
     writeInfo = require('../gameInfo/writeInfo');
 
 /**

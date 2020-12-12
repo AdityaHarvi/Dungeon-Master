@@ -10,4 +10,14 @@ function removeReaction(reaction) {
     });
 }
 
+/**
+ * Determines if the user is the host of the game.
+ * @param {string} gameHost The host of the game.
+ * @param {string} inputUser The current user.
+ */
+function isHost(gameHost, inputUser) {
+    return gameHost === inputUser;
+}
+
 exports.removeReaction = removeReaction;
+exports.isHost = isHost;

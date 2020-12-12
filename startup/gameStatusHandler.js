@@ -17,15 +17,6 @@ function _getGameName(rawInput) {
 }
 
 /**
- * Check if the user is the host.
- * @param {int} hostID The host id.
- * @param {int} userID The user id.
- */
-function _isHost(hostID, userID) {
-    return hostID === userID;
-}
-
-/**
  * Generates the embed detailing the game info and a list of accepted / declined users.
  * @param {object} gameObject The game object.
  * @param {string[]} acceptedList Accepted player list.
@@ -194,14 +185,14 @@ function _createRoles(gameName, msg, callback) {
 function _setRoles(gameObject, client, msg, callback) {
     _createRoles(gameObject.title, msg, () => {
         // Assign the host role.
-        let hostUser = msg.guild.members.cache.get(client.users.cache.find(user => user.username === gameObject.host).id);
+        let hostUser = msg.guild.members.cache.get(msg.client.users.cache.find(user => user.username === gameObject.host).id);
         hostUser.roles.add(msg.guild.roles.cache.find(role => role.name === `${gameObject.title}_host`)).catch(error => {
             msg.channel.send(`Due to permission errors, I was unable to assign the role \`${gameObject.title}_host\` to ${gameObject.host}`);
         });
 
         // Assign the player roles.
         gameObject.players.forEach(player => {
-            let playerUser = msg.guild.members.cache.get(client.users.cache.find(user => user.username === player).id);
+            let playerUser = msg.guild.members.cache.get(msg.client.users.cache.find(user => user.username === player).id);
             playerUser.roles.add(msg.guild.roles.cache.find(role => role.name === `${gameObject.title}_player`)).catch(error => {
                 msg.channel.send(`Due to permission errors, I was unable to assign the role \`${gameObject.title}_player\` to ${player}`);
             });
@@ -224,7 +215,7 @@ function _generateCreationUI(gameName, msg) {
 
     gameObject.title = gameName;
     gameObject.host = msg.member.user.username;
-    gameObject.players = [];
+    gameObject.players = ["Laggy"];
     gameObject.declined = [];
     gameObject.hostChannel = null;
     gameObject.playerChannel = null;
@@ -253,7 +244,7 @@ function _generateCreationUI(gameName, msg) {
             switch (reaction.emoji.name) {
                 case "✅":
                     // Player wants to join the campaign.
-                    if (!gameObject.players.includes(inputUserName) && !_isHost(gameObject.host, inputUserName)) {
+                    if (!gameObject.players.includes(inputUserName) && !ui.isHost(gameObject.host, inputUserName)) {
                         if (gameObject.declined.includes(inputUserName)) {
                             // Remove name from the 'declined' list.
                             gameObject.declined = gameObject.declined.filter(newArray => newArray !== inputUserName);
@@ -265,7 +256,7 @@ function _generateCreationUI(gameName, msg) {
                     break;
                 case "❌":
                     // Player does not want to join the campaign.
-                    if (!gameObject.declined.includes(inputUserName) && !_isHost(gameObject.host, inputUserName)) {
+                    if (!gameObject.declined.includes(inputUserName) && !ui.isHost(gameObject.host, inputUserName)) {
                         if (gameObject.players.includes(inputUserName)) {
                             // Remove name from the 'accepted' list.
                             gameObject.players = gameObject.players.filter(newArray => newArray !== inputUserName);
@@ -278,7 +269,7 @@ function _generateCreationUI(gameName, msg) {
                 case "👍":
                     // FIXME
                     // Host can start the game from there. This will generate the game file.
-                    if (_isHost(gameObject.host, inputUserName) /*&& gameObject.players.length > 0*/) {
+                    if (ui.isHost(gameObject.host, inputUserName) /*&& gameObject.players.length > 0*/) {
                         db.getActiveGame(isActive => {
                             if (isActive) {
                                 return error.error(`Campaign \`${isActive.title}\` is currently active.`, `Notify ${isActive.host} to \`!pause ${isActive.title}\` or \`!end ${isActive.title}\`.`, msg);
@@ -290,8 +281,7 @@ function _generateCreationUI(gameName, msg) {
                                 msg.channel.send(`Campaign \`${newObject.title}\` has been created.`);
 
                                 newObject.players.forEach(playerName => {
-                                    // FIXME, The messages need to be sent to the proper channel.
-                                    player.generateClassSelectionUI(newObject.title, playerName, msg);
+                                    player.generateClassSelectionUI(newObject, playerName, msg);
                                 });
                             });
                             return;
@@ -300,7 +290,7 @@ function _generateCreationUI(gameName, msg) {
                     break;
                 case "🗑️":
                     // Host can cancel the campaign.
-                    if (_isHost(gameObject.host, inputUserName)) {
+                    if (ui.isHost(gameObject.host, inputUserName)) {
                         gameSetupEmbed.delete();
                         msg.channel.send(`Campaign \`${gameObject.title}\` has been cancelled.`);
                         return;
@@ -440,7 +430,7 @@ function _generateEndUI(gameObject, msg) {
             switch (reaction.emoji.name) {
                 case "✅":
                     // Player wants to perform a full wipe on the game.
-                    if (_isHost(gameObject.host, inputUserName)) {
+                    if (ui.isHost(gameObject.host, inputUserName)) {
                         gameSetupEmbed.delete();
                         db.deleteGame(gameObject.title);
                         _deleteChannels(gameObject.title, msg);
@@ -451,7 +441,7 @@ function _generateEndUI(gameObject, msg) {
                     break;
                 case "❌":
                     // Player does not want to cancel the game.
-                    if (_isHost(gameObject.host, inputUserName)) {
+                    if (ui.isHost(gameObject.host, inputUserName)) {
                         gameSetupEmbed.delete();
                         msg.channel.send(`No action taken.`);
                         return;
@@ -459,7 +449,7 @@ function _generateEndUI(gameObject, msg) {
                     break;
                 case "☑️":
                     // Archive game.
-                    if (_isHost(gameObject.host, inputUserName)) {
+                    if (ui.isHost(gameObject.host, inputUserName)) {
                         gameSetupEmbed.delete();
                         _deleteRoles(gameObject.title, msg);
                         _archiveChannels(gameObject.title, msg);
@@ -639,7 +629,7 @@ function _checkIfModifiable(gameObject, msg) {
     } else if (gameObject.archived) {
         error.error("This game is archived.", "Archived games cannot be modified.", msg);
         return false;
-    } else if (!_isHost(gameObject.host, msg.author.username)) {
+    } else if (!ui.isHost(gameObject.host, msg.author.username)) {
         error.error("Only the host can modify the status of the game", `Contact \`${gameObject.host}\` to help you out.`, msg);
         return false;
     }

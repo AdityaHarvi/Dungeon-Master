@@ -1,7 +1,6 @@
 const error = require('../util/error'),
     getInfo = require('../gameInfo/getInfo'),
     removeItem = require('../util/removeItem'),
-    abilities = require('../inventories/abilities'),
     writeInfo = require('../gameInfo/writeInfo');
 
 /**

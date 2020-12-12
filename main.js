@@ -7,10 +7,10 @@ const Discord = require("discord.js"),
     gameHandler = require('./startup/gameStatusHandler'),
     classSelection = require("./startup/classSelection"),
     getInfo = require('./gameInfo/getInfo'),
-    displayInfo = require('./gameInfo/displayInfo'),
+    display = require('./displayInfo/displayInfo'),
     startup = require('./startup/classSelection'),
     upload = require('./util/upload'),
-    help = require('./util/help'),
+    help = require('./displayInfo/help'),
     drop = require('./util/removeItem'),
     equip = require('./util/equip'),
     transfer = require('./util/transferItem'),
@@ -19,15 +19,12 @@ const Discord = require("discord.js"),
     attack = require('./combat/attack'),
     cast = require('./combat/cast'),
     useItem = require('./combat/useItem'),
-    activate = require('./combat/activate'),
     bleed = require('./combat/bleed'),
-    adminHelp = require('./admin/help'),
     adminModifyInventory = require('./admin/modifyInventory'),
     adminModifyStats = require('./admin/modifyStats'),
     adminRoll = require('./admin/rollForAll'),
     ally = require('./admin/ally'),
     purge = require('./admin/purge');
-let activeGameObject;
 
 // Log into the bot.
 client.login(getToken.getToken());
@@ -36,13 +33,10 @@ client.login(getToken.getToken());
 client.on('ready', () => {
     console.log('System is online.');
     database.createDB();
-    database.getActiveGame(gameObject => {
-        activeGameObject = gameObject;
-    });
     client.user.setActivity('!help');
 });
 
-function _errorChecks(gameObject, msg) {
+function _errorChecksPass(gameObject, msg) {
     if (!gameObject) {
         error.error("Error finding an active game.", "Create one with `!play <campaign name>`.", msg);
         return false;
@@ -67,35 +61,50 @@ client.on('message', msg => {
     let args = msg.content.substring(PREFIX.length).split(" ");
     args[0] = args[0].toLowerCase();
 
-    // classSelection.generateClassSelectionUI({}, msg.author.username, msg);
+    // FIXME: Try to get the active game once or when a game status is updated. Not every time a command is called.
+    database.getActiveGame(activeGameObject => {
+        switch(args[0]) {
+            // Handles displaying information on items / spells / abilities / classes.
+            case "help":
+                help.baseMenu(activeGameObject && activeGameObject.host, activeGameObject && activeGameObject.title, msg);
+                break;
+            case "item":
+                (args[1]) ?
+                    display.itemInfo(args, msg) :
+                    error.error("What is the item name?", "`!item <name>`", msg);
+                break;
+            case "spell":
+                (args[1]) ?
+                    display.spellInfo(args, msg) :
+                    error.error("What is the spell name?", "!spell <name>", msg);
+                break;
+            case "class":
+                display.classMenuUi(msg);
+                break;
 
-    switch(args[0]) {
-        case "help":
-            help.baseMenu(msg);
-            break;
-        // Handles game creation / game status handeling:
-        case "create":
-            (args[1]) ?
-                gameHandler.setupGame(args, msg) :
-                error.error("What is the campaign name?", "`!create <Campaign Name>`", msg);
-            break;
-        case "pause":
-            (args[1]) ?
-                gameHandler.pauseGame(args, msg) :
-                error.error("What is the campaign name?", "`!pause <Campaign Name>`", msg);
-            break;
-        case "end":
-            (args[1]) ?
-                gameHandler.endGame(args, msg) :
-                error.error("What is the campaign name?", "`!end <Campaign Name>`", msg);
-            break;
-        case "play":
-            (args[1]) ?
-                gameHandler.playGame(args, msg) :
-                error.error("What is the campaign name?", "`!play <Campaign Name>`", msg);
-            break;
-        default:
-            msg.react("❓");
-            msg.author.send(`\`${msg.content}\` is an unknown command. \`!help\` to get a list of available commands.`);
-    }
-})
+            // Handles game creation / game status handeling:
+            case "create":
+                (args[1]) ?
+                    gameHandler.setupGame(args, msg) :
+                    error.error("What is the campaign name?", "`!create <Campaign Name>`", msg);
+                break;
+            case "pause":
+                (args[1]) ?
+                    gameHandler.pauseGame(args, msg) :
+                    error.error("What is the campaign name?", "`!pause <Campaign Name>`", msg);
+                break;
+            case "end":
+                (args[1]) ?
+                    gameHandler.endGame(args, msg) :
+                    error.error("What is the campaign name?", "`!end <Campaign Name>`", msg);
+                break;
+            case "play":
+                (args[1]) ?
+                    gameHandler.playGame(args, msg) :
+                    error.error("What is the campaign name?", "`!play <Campaign Name>`", msg);
+                break;
+            default:
+                msg.react("❓");
+        }
+    });
+});

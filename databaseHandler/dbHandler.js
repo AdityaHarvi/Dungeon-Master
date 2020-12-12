@@ -11,9 +11,9 @@ function createDB() {
             host TEXT,
             players TEXT,
             declined TEXT,
-            hostChannel INTEGER,
-            playerChannel INTEGER,
-            gameCategory INTEGER,
+            hostChannel TEXT,
+            playerChannel TEXT,
+            gameCategory TEXT,
             archived INTEGER,
             activeGame INTEGER
         );`
@@ -21,24 +21,64 @@ function createDB() {
 
     db.run(
         `CREATE TABLE IF NOT EXISTS player (
-            username TEXT NOT NULL PRIMARY KEY,
+            username TEXT NOT NULL,
             class TEXT NOT NULL,
-            health INTEGER,
-            strength INTEGER,
-            mana INTEGER,
-            maxHealth INTEGER,
-            maxMana INTEGER,
+            title TEXT,
             spells TEXT,
-            abilities TEXT,
             items TEXT,
-            equiped TEXT,
+            weapon TEXT,
+            clothing TEXT,
             diceSize INTEGER,
             journal TEXT,
             maxInventory INTEGER,
-            title TEXT,
+            armor INTEGER,
+            bonusSpell INTEGER,
+            bonusHealing INTEGER,
+            luck INTEGER,
+            health INTEGER,
+            strength INTEGER,
+            mana INTEGER,
+            PRIMARY KEY (username, title),
             FOREIGN KEY (title) REFERENCES game ON DELETE CASCADE
         );`
     );
+
+    db.close();
+}
+
+function addPlayer(po) {
+    let db = new sqlite3.Database("dungeon.db", err => {
+        if (err) {
+            console.log(err.message);
+            return;
+        }
+    });
+
+    let spells = _arrayToString(po.spells);
+    let items = _arrayToString(po.items);
+
+    db.run(
+        `INSERT INTO player VALUES (
+            :username,
+            :class,
+            :title,
+            :spells,
+            :items,
+            :weapon,
+            :clothing,
+            :diceSize,
+            :journal,
+            :maxInventory,
+            :armor,
+            :bonusSpell,
+            :bonusHealing,
+            :luck,
+            :health,
+            :strength,
+            :mana
+        );`,
+        [po.username, po.class, spells, items, po.weapon, po.clothing, po.diceSize, po.journal, po.maxInventory, po.armor, po.bonusSpell, po.bonusHealing, po.luck, po.health, po.strength, po.mana]
+    )
 
     db.close();
 }
@@ -249,3 +289,4 @@ exports.deleteGame = deleteGame;
 exports.archiveGame = archiveGame;
 exports.pauseGame = pauseGame;
 exports.playGame = playGame;
+exports.addPlayer = addPlayer;
