@@ -5,16 +5,13 @@ const Discord = require("discord.js"),
     database = require("./databaseHandler/dbHandler"),
     error = require('./util/error'),
     gameHandler = require('./startup/gameStatusHandler'),
-    classSelection = require("./startup/classSelection"),
     display = require('./displayInfo/displayInfo'),
-    startup = require('./startup/classSelection'),
     upload = require('./util/upload'),
     help = require('./displayInfo/help'),
     drop = require('./util/removeItem'),
     equip = require('./util/equip'),
     transfer = require('./util/transferItem'),
     journal = require('./util/journal'),
-    dice = require('./util/dice'),
     attack = require('./combat/attack'),
     cast = require('./combat/cast'),
     useItem = require('./combat/useItem'),
@@ -110,6 +107,11 @@ client.on('message', msg => {
             (args[1]) ?
                 gameHandler.playGame(args, msg) :
                 error.error("What is the campaign name?", "`!play <Campaign Name>`", msg);
+            break;
+
+        case "roll":
+            if (args[1] && isNaN(args[1])) return error.error("Incorrect arguments.", "`!roll <optional: dice size>` is the proper format. Defaults to D20 if no size is given.", msg);
+            display.diceRoll(args[1], activeGameObject.game_title, msg);
             break;
 
         default:

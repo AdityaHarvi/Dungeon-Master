@@ -1,6 +1,7 @@
 const items = require('../inventories/items'),
     spells = require('../inventories/spells'),
     Discord = require("discord.js"),
+    dice = require("../util/dice"),
     ui = require("../util/UImethods"),
     db = require("../databaseHandler/dbHandler"),
     error = require('../util/error');
@@ -118,42 +119,6 @@ function displayAttactInfo(playerInfo, itemInfo, extraInfo, msg) {
     return msg.channel.send({embed: attackEmbed});
 }
 
-function getDiceRoll(diceSize, msg) {
-
-    getInfo.getPlayerInfo(msg.member.nickname, msg, (playerInfo) => {
-        let extraInfo = {};
-        extraInfo.diceSize = (args[1]) ? args[1] : 20;
-        extraInfo.roll = Number(diceRoll.diceRoll(extraInfo.diceSize, msg));
-        extraInfo.finalRoll = extraInfo.roll;
-        extraInfo.specialAbility = false;
-
-        if (playerInfo.abilities.includes('i_am_my_own_plus_1')) {
-            extraInfo.specialAbility = 'i_am_my_own_plus_1';
-            extraInfo.finalRoll += 1;
-        }
-
-        displayInfo.displayDiceRoll(playerInfo.name, extraInfo.finalRoll, extraInfo.roll, extraInfo.diceSize, extraInfo.specialAbility, msg);
-    });
-}
-
-function displayDiceRoll(playerName, finalRoll, rollVal, diceSize, specialAbility, msg) {
-    const diceRollEmbed = {
-        color: 0xa8a632,
-        title: `${playerName} rolls a \`${finalRoll}\``,
-        thumbnail: {
-            url: 'https://i.imgur.com/4EAe8y6.png'
-        },
-        fields: {name: `\u200b`, value: `D${diceSize} (${rollVal}) ${(specialAbility) ? ' + 1' : ''}`, inline: true}
-    };
-
-    if (specialAbility) {
-        diceRollEmbed.footer = { text: `Passive ability "${specialAbility}" has been activated.` };
-    }
-
-    return msg.channel.send({embed: diceRollEmbed});
-}
-
-
 function _getPlayerInfoEmbed(playerInfo, itemInfo) {
     let bonusArmor = "\u200b";
     let bonusStrength = "\u200b";
@@ -234,6 +199,48 @@ function displayPlayerInfo(playerName, gameObject, msg) {
     });
 
     // msg.author.send({embed: characterInformationEmbed});
+}
+
+
+function displayDiceRoll(diceSize=20, gameName, msg) {
+    db.getBaiscPlayerInfo(msg.author.username, gameName, msg, playerInfo => {
+        let imageURL = "";
+        let footerText = " ";
+        let luck = false;
+
+        let roll = dice.roll(diceSize);
+        if (roll == diceSize) {
+            imageURL = "https://imgur.com/YV7Amj7.png";
+        } else if (roll === 1) {
+            imageURL = "https://i.imgur.com/4EAe8y6.png";
+        } else {
+            imageURL = "https://imgur.com/JYyQ1Xd.png";
+        }
+
+        let finalRoll = roll + playerInfo.luck;
+        if (finalRoll > diceSize) {
+            finalRoll = diceSize;
+        }
+
+        if (playerInfo.luck > 0) {
+            footerText = "Bonus luck has been applied!";
+            luck = true;
+        }
+
+        let diceEmbed = _getDiceEmbed(playerInfo, roll, finalRoll, footerText, imageURL, diceSize, luck);
+        msg.channel.send(diceEmbed);
+    });
+}
+
+function _getDiceEmbed(playerInfo, roll, finalRoll, footerText, imageURL, diceSize=20, lucky) {
+    return new Discord.MessageEmbed()
+        .setColor("0xa8a632")
+        .setTitle(`${playerInfo.username} rolls a ${finalRoll}`)
+        .setThumbnail(imageURL)
+        .addFields(
+            {name: `\u200b`, value: `D${diceSize} (${roll}) ${(lucky) ? `+ ${playerInfo.luck}` : ''}`, inline: true}
+        )
+        .setFooter(footerText);
 }
 
 function _getName(rawInput) {
@@ -461,3 +468,4 @@ exports.itemInfo = itemInfo;
 exports.spellInfo = spellInfo;
 exports.classMenuUi = classMenuUi;
 exports.displayPlayerInfo = displayPlayerInfo;
+exports.diceRoll = displayDiceRoll;

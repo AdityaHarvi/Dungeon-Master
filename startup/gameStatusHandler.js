@@ -267,7 +267,7 @@ function _generateCreationUI(gameName, msg) {
                     }
                     break;
                 case "👍":
-                    // FIXME
+                    // FIXME. Commented out lines for testing purposes.
                     // Host can start the game from there. This will generate the game file.
                     if (ui.isHost(gameObject.host, inputUserName) /*&& gameObject.players.length > 0*/) {
                         db.getActiveGame(isActive => {

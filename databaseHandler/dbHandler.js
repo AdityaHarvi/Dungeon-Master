@@ -103,8 +103,10 @@ function createDB() {
             entry_name TEXT NOT NULL,
             username TEXT NOT NULL,
             description TEXT NOT NULL,
+            game_title TEXT NOT NULL,
             PRIMARY KEY (username, entry_name),
-            FOREIGN KEY (username) REFERENCES player ON DELETE CASCADE
+            FOREIGN KEY (username) REFERENCES player ON DELETE CASCADE,
+            FOREIGN KEY (game_title) REFERENCES game ON DELETE CASCADE
         );`
     );
 
@@ -210,9 +212,9 @@ function getBaiscPlayerInfo(playerName, gameName, msg, callback) {
             }
 
             if (!row) {
-                error.error(`Error obtaining player information.`, "Try checking your spelling. Player names are case sensitive.", msg);
-                if (callback) callback(row);
+                error.error("Error obtaining player information.", "Try checking your spelling. Player names are case sensitive.", msg);
             }
+
             if (callback) callback(row);
         }
     );
@@ -399,8 +401,6 @@ function giveSpell(playerName, gameObject, spellName, msg) {
         return error.error(`Could not find \`${playerName}\` in this game.`, "Player names are case sensitive unfortunately! Check if it looks right.", msg);
     }
 
-    console.log("This is being called");
-
     getSpellInfo(spellName, msg, spellInfo => {
         if (spellInfo) {
             let db = new sqlite3.Database("dungeon.db", err => {
@@ -581,7 +581,51 @@ function deleteGame(gameName) {
         }
     );
 
-    setActive.setActiveGameObject(null);
+    db.run(
+        `DELETE FROM player
+        WHERE game_title = ?`,
+        [gameName],
+        (err) => {
+            if (err) {
+                console.log(err.message);
+            }
+        }
+    );
+
+    db.run(
+        `DELETE FROM player_items
+        WHERE game_title = ?`,
+        [gameName],
+        (err) => {
+            if (err) {
+                console.log(err.message);
+            }
+        }
+    );
+
+    db.run(
+        `DELETE FROM player_spells
+        WHERE game_title = ?`,
+        [gameName],
+        (err) => {
+            if (err) {
+                console.log(err.message);
+            }
+        }
+    );
+
+    db.run(
+        `DELETE FROM player_journal
+        WHERE game_title = ?`,
+        [gameName],
+        (err) => {
+            if (err) {
+                console.log(err.message);
+            }
+        }
+    );
+
+    getActiveGame();
 
     db.close();
 }
@@ -610,7 +654,7 @@ function archiveGame(gameName) {
         }
     );
 
-    setActive.setActiveGameObject(null);
+    getActiveGame();
 
     db.close();
 }
