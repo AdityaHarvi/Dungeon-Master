@@ -1,9 +1,7 @@
 const error = require('../util/error'),
-    getInfo = require('../gameInfo/getInfo'),
-    diceRoll = require('../util/diceRoll'),
+    diceRoll = require('../util/dice'),
     displayInfo = require('../displayInfo/displayInfo'),
-    spells = require('../inventories/spells'),
-    writeInfo = require('../gameInfo/writeInfo');
+    spells = require('../inventories/spells');
 
 /**
  * Heals the target player with the amount specified on the spell.

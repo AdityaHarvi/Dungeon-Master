@@ -1,8 +1,8 @@
-const getInfo = require('../gameInfo/getInfo'),
-    items = require('../inventories/items'),
+const items = require('../inventories/items'),
     spells = require('../inventories/spells'),
     Discord = require("discord.js"),
     ui = require("../util/UImethods"),
+    db = require("../databaseHandler/dbHandler"),
     error = require('../util/error');
 
 /**
@@ -11,63 +11,6 @@ const getInfo = require('../gameInfo/getInfo'),
  */
 function checkIfExists(objectToCheck) {
     return (objectToCheck.length === 0) ? "None" : objectToCheck;
-}
-
-/**
- * Populates the 'fields' parameter for the Embed.
- * @param {object} playerObj The object containing all the information for the player.
- */
-function getFields(playerObj) {
-    fields = [];
-    fields[0] = {name: '|--------HEALTH--------|', value: `|‾‾‾‾‾‾‾( ${playerObj.health}/${playerObj.maxHealth} )‾‾‾‾‾‾‾‾‾|`, inline: true};
-    fields[1] = {name: '|-------STRENGTH-------|', value: `|‾‾‾‾‾‾‾‾‾‾‾( ${playerObj.strength} )‾‾‾‾‾‾‾‾‾‾‾‾|`, inline: true};
-    fields[2] = {name: '|---------MANA---------|', value: `|‾‾‾‾‾‾‾‾‾( ${playerObj.mana}/${playerObj.maxMana} )‾‾‾‾‾‾‾‾|`, inline: true};
-    fields[3] = {name: '\u200b', value: `**Equiped: ${playerObj.currentlyEquiped}**`};
-    fields[4] = {name: '|---------SPELLS---------|', value: checkIfExists(playerObj.spells), inline: true};
-    fields[5] = {name: `|------TOOLS (${playerObj.items.length}/${playerObj.maxInventory})------|`, value: checkIfExists(playerObj.items), inline: true};
-    fields[6] = {name: '|-------ABILITIES--------|', value: checkIfExists(playerObj.abilities), inline: true};
-
-    return fields;
-}
-
-/**
- * Displays the character information for the player requesting it.
- * @param {string} playerName The name of the player.
- * @param {object} msg Contains information about the command sent by the player through discord.
- */
-function displayPlayerInfo(playerName, msg) {
-    if (playerName.toLowerCase() !== msg.member.nickname.toLowerCase() && !msg.member._roles.includes('727195200681934969')) return error.error('You need to be hosting the game to run this command.', msg);
-
-    // Read player information.
-    getInfo.getPlayerInfo(playerName, msg, (playerInfo) => {
-        const characterInformationEmbed = {
-            color: 0xd8eb34,
-            title: `${playerInfo.name}'s Inventory [${playerInfo.class}]`,
-            fields: getFields(playerInfo)
-        };
-
-        return msg.author.send({embed: characterInformationEmbed});
-    });
-}
-
-/**
- * Generates a custom embed.
- * @param {object} inventoryObject Contains information about the object.
- */
-function getInventoryEmbed(inventoryObject) {
-    return {
-        color: inventoryObject.color,
-        title: inventoryObject.name,
-        thumbnail: {
-            url: inventoryObject.image
-        },
-        fields: [
-            {
-                name: inventoryObject.header,
-                value: inventoryObject.info
-            }
-        ]
-    };
 }
 
 /**
@@ -175,7 +118,6 @@ function displayAttactInfo(playerInfo, itemInfo, extraInfo, msg) {
     return msg.channel.send({embed: attackEmbed});
 }
 
-
 function getDiceRoll(diceSize, msg) {
 
     getInfo.getPlayerInfo(msg.member.nickname, msg, (playerInfo) => {
@@ -212,6 +154,88 @@ function displayDiceRoll(playerName, finalRoll, rollVal, diceSize, specialAbilit
 }
 
 
+function _getPlayerInfoEmbed(playerInfo, itemInfo) {
+    let bonusArmor = "\u200b";
+    let bonusStrength = "\u200b";
+    let bonusMana = "\u200b";
+
+    if (playerInfo.armor > 0) {
+        bonusArmor = `+${playerInfo.armor} Armor\n`;
+    }
+    if (itemInfo.health > 0) {
+        bonusArmor = `+${itemInfo.health} Health`;
+    }
+    if (itemInfo.strength > 0) {
+        bonusStrength = `+${itemInfo.strength} Strength`;
+    }
+    if (itemInfo.mana > 0) {
+        bonusMana = `+${itemInfo.mana} Mana`;
+    }
+
+    return new Discord.MessageEmbed()
+        .setColor("0xd8eb34")
+        .setTitle(`${playerInfo.username}'s Inventory [${playerInfo.class}]`)
+        .setThumbnail(playerInfo.image)
+        .addFields(
+            {name: `❤️ ${playerInfo.health} / ${playerInfo.maxHealth + itemInfo.health}`, value: bonusArmor, inline: true},
+            {name: `💪 ${playerInfo.strength + itemInfo.strength}`, value: bonusStrength, inline: true},
+            {name: `🧪 ${playerInfo.mana} / ${playerInfo.maxMana + itemInfo.mana}`, value: bonusMana, inline: true},
+            {name: `Equiped Armor: ${playerInfo.clothing}`, value: `**Equiped Weapon: ${playerInfo.weapon}**`},
+            {name: '|---------SPELLS---------|', value: checkIfExists(playerObj.spells), inline: true},
+            {name: `|------TOOLS (${playerInfo.totalInventory}/${playerObj.maxInventory})------|`, value: checkIfExists(playerObj.items), inline: true}
+        );
+}
+
+function _parsePlayerArrays(arr) {
+    if (arr.length === 0) {
+        return "None";
+    }
+
+    let displayString = "";
+    arr.forEach(itemObject => {
+        displayString += itemObject.item_name + "\n";
+    });
+
+    return displayString;
+}
+
+function _parsePlayerItems(playerInfo) {
+    playerInfo.totalInventory = 0;
+    playerInfo.itemString = _parsePlayerArrays(playerInfo.items);
+    playerInfo.items.forEach(itemObject => {
+        totalInventory += itemObject.quantity;
+    });
+
+    return playerInfo;
+}
+
+function _parsePlayerSpells(playerInfo) {
+    playerInfo.spellString = _parsePlayerArrays(playerInfo.spells);
+    return playerInfo;
+}
+
+/**
+ * Displays the character information for the player requesting it.
+ * @param {string} playerName The name of the player.
+ * @param {object} msg Contains information about the command sent by the player through discord.
+ */
+function displayPlayerInfo(playerName, gameObject, msg) {
+    if (playerName !== msg.author.username && !ui.isHost(gameObject.host, playerName)) {
+        return error.error("This is a host only command.", "You cannot view another members inventory.", msg);
+    }
+
+    db.getFullPlayerInfo(playerName, gameObject.game_title, msg, playerInfo => {
+        if (!playerInfo) return;
+
+        playerInfo = _parsePlayerItems(playerInfo);
+        playerInfo = _parsePlayerSpells(playerInfo);
+
+        console.log(playerInfo);
+    });
+
+    // msg.author.send({embed: characterInformationEmbed});
+}
+
 function _getName(rawInput) {
     let objectName = "";
     for (let i = 1; i < rawInput.length; i++) {
@@ -220,7 +244,7 @@ function _getName(rawInput) {
     return objectName.slice(0, -1).toLowerCase();
 }
 
-function _getEmbed(inventoryObject) {
+function _getGameObjectEmbed(inventoryObject) {
     return new Discord.MessageEmbed()
         .setColor(inventoryObject.color)
         .setTitle(inventoryObject.name)
@@ -246,7 +270,7 @@ function itemInfo(rawInput, msg) {
     itemInfo.color = 0x7734eb;
     itemInfo.header = `${itemInfo.equipable ? "Equipable" : "Consumable"}`;
     itemInfo.footer = `${itemInfo.equipable ? `!equip ${itemName}` : `!use ${itemName}`}`
-    const itemInfoEmbed = _getEmbed(itemInfo);
+    const itemInfoEmbed = _getGameObjectEmbed(itemInfo);
     msg.channel.send(itemInfoEmbed);
 }
 
@@ -265,7 +289,7 @@ function spellInfo(rawInput, msg) {
     spellInfo.header = `Mana Cost: ${spellInfo.mana}`;
     spellInfo.footer = `!cast ${spellName}`;
 
-    const spellInfoEmbed = _getEmbed(spellInfo);
+    const spellInfoEmbed = _getGameObjectEmbed(spellInfo);
     msg.channel.send(spellInfoEmbed);
 }
 
@@ -436,3 +460,4 @@ function classMenuUi(msg) {
 exports.itemInfo = itemInfo;
 exports.spellInfo = spellInfo;
 exports.classMenuUi = classMenuUi;
+exports.displayPlayerInfo = displayPlayerInfo;

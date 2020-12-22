@@ -1,6 +1,4 @@
-const error = require('../util/error'),
-    getInfo = require('../gameInfo/getInfo'),
-    writeInfo = require('../gameInfo/writeInfo');
+const error = require('../util/error');
 
 /**
  * Adjusts the health of a player by the requested amount.

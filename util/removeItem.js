@@ -1,6 +1,4 @@
-const error = require('./error'),
-    getInfo = require('../gameInfo/getInfo'),
-    writeInfo = require('../gameInfo/writeInfo');
+const error = require('./error');
 
 /**
  * Removes a single object from an array. This is needed because there can be

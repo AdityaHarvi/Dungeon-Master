@@ -1,6 +1,4 @@
-const getInfo = require('../gameInfo/getInfo'),
-    error = require('./error'),
-    writeInfo = require('../gameInfo/writeInfo');
+const error = require('./error');
 
 function checkJournal(journalArray, noteName) {
     for (var i = 0; i < journalArray.length; i++) {

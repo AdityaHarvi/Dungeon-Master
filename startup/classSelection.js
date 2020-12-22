@@ -10,14 +10,16 @@ const Discord = require("discord.js"),
 function _classSelection(className, playerObject) {
     switch (className) {
         case "juggernaut":
-            playerObject.class = 'Juggernaut';
+            playerObject.class = "Juggernaut";
+            playerObject.image = "https://i.imgur.com/ChxDqEE.png"
             playerObject.health = 40;
             playerObject.strength = 0;
             playerObject.mana = 0;
             playerObject.armor = 3;
             break;
         case "assassin":
-            playerObject.class = 'Assassin';
+            playerObject.class = "Assassin";
+            playerObject.image = "https://i.imgur.com/6UANXPh.png";
             playerObject.health = 18;
             playerObject.strength = 5;
             playerObject.mana = 0;
@@ -30,28 +32,32 @@ function _classSelection(className, playerObject) {
             playerObject.bonusSpell = 3;
             break;
         case "paladin":
-            playerObject.class = 'Paladin';
+            playerObject.class = "Paladin";
+            playerObject.image = "https://i.imgur.com/BLhcLTS.gif";
             playerObject.health = 25;
             playerObject.strength = 3;
             playerObject.mana = 5;
             playerObject.bonusHealing = 1;
             break;
         case "cleric":
-            playerObject.class = 'Cleric';
+            playerObject.class = "Cleric";
+            playerObject.image = "https://i.imgur.com/AJZas5t.png";
             playerObject.health = 17;
             playerObject.strength = 0;
             playerObject.mana = 10;
             playerObject.bonusHealing = 3;
             break;
         case "archmage":
-            playerObject.class = 'Archmage';
+            playerObject.class = "Archmage";
+            playerObject.image = "https://i.imgur.com/10DmLXk.png";
             playerObject.health = 20;
             playerObject.strength = 2;
             playerObject.mana = 10;
             playerObject.bonusSpell = 1;
             break;
         case "bard":
-            playerObject.class = 'Bard';
+            playerObject.class = "Bard";
+            playerObject.image = "https://i.imgur.com/znRYmxK.png";
             playerObject.health = 23;
             playerObject.strength = 0;
             playerObject.mana = 4;
@@ -145,13 +151,14 @@ function generateClassSelectionUI(gameObject, playerName, msg) {
     let infoFlag = false;
 
     let playerObject = {};
-    playerObject.game = gameObject.title;
+    playerObject.game = gameObject.game_title;
     playerObject.username = playerName;
+    playerObject.image = "";
+    playerObject.isBot = 0;
     playerObject.spells = [];
     playerObject.items = ["bare_fist", "torn_clothing"];
     playerObject.weapon = "bare_fist";
     playerObject.clothing = "torn_clothing";
-    playerObject.diceSize = 10;
     playerObject.journal = [];
     playerObject.maxInventory = 15;
     playerObject.armor = 0;
@@ -221,8 +228,8 @@ function generateClassSelectionUI(gameObject, playerName, msg) {
                         _sendConfirmation(gameObject.playerChannel, playerObject, classEmbed, msg);
                         return;
                 }
-                ui.removeReaction(reaction);
             }
+            ui.removeReaction(reaction);
         });
     });
 }

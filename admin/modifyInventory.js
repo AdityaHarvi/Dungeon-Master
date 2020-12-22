@@ -1,7 +1,5 @@
 const error = require('../util/error'),
-    getInfo = require('../gameInfo/getInfo'),
-    removeItem = require('../util/removeItem'),
-    writeInfo = require('../gameInfo/writeInfo');
+    removeItem = require('../util/removeItem');
 
 /**
  * Corrects syntax to allow for easy addition to the player information object.

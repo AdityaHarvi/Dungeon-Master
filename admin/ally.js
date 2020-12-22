@@ -1,7 +1,6 @@
 const fs = require('fs'),
     error = require('../util/error'),
-    displayInfo = require('../displayInfo/displayInfo'),
-    writeInfo = require('../gameInfo/writeInfo');
+    displayInfo = require('../displayInfo/displayInfo');
 
 /**
  * Creates a allied character. The host must control their actions.

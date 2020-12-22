@@ -1,8 +1,6 @@
 const removeItem = require('../util/removeItem'),
     error = require('../util/error'),
-    getInfo = require('../gameInfo/getInfo'),
-    items = require('../inventories/items'),
-    writeInfo = require('../gameInfo/writeInfo');
+    items = require('../inventories/items');
 
 /**
  * Adjusts player stat points based off the equipment they are currently equiping.

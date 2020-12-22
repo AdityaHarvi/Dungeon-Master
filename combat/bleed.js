@@ -1,5 +1,4 @@
 const fs = require('fs'),
-    writeInfo = require('../gameInfo/writeInfo'),
     error = require('../util/error');
 
 function bleed(bleedNum, msg) {

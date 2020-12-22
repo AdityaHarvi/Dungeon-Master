@@ -1,6 +1,4 @@
-const writeInfo = require('../gameInfo/writeInfo'),
-    getInfo = require('../gameInfo/getInfo'),
-    items = require('../inventories/items'),
+const items = require('../inventories/items'),
     error = require('./error');
 
 /**

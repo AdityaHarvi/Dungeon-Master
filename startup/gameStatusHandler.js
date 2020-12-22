@@ -32,7 +32,7 @@ function _getGameStartupEmbed(gameObject, acceptedList = "-", declinedList = "-"
 
     return new Discord.MessageEmbed()
         .setColor("0xb04360")
-        .setTitle("New Campaign: " + gameObject.title)
+        .setTitle("New Campaign: " + gameObject.game_title)
         .setAuthor("Dungeon Master", "https://i.imgur.com/MivKiKL.png")
         .setDescription("Hosted By: " + gameObject.host)
         .addFields(
@@ -52,7 +52,7 @@ function _getGameStartupEmbed(gameObject, acceptedList = "-", declinedList = "-"
  */
 function _createChannels(gameObject, msg, callback) {
     // Create the category.
-    msg.guild.channels.create(`${gameObject.title}_campaign`, {
+    msg.guild.channels.create(`${gameObject.game_title}_campaign`, {
         type: "category"
     }).then(category => {
         gameObject.gameCategory = category.id;
@@ -62,17 +62,17 @@ function _createChannels(gameObject, msg, callback) {
                 deny: ["VIEW_CHANNEL"]
             },
             {
-                id: msg.guild.roles.cache.find(role => role.name === `${gameObject.title}_host`).id,
+                id: msg.guild.roles.cache.find(role => role.name === `${gameObject.game_title}_host`).id,
                 allow: ["VIEW_CHANNEL"]
             },
             {
-                id: msg.guild.roles.cache.find(role => role.name === `${gameObject.title}_player`).id,
+                id: msg.guild.roles.cache.find(role => role.name === `${gameObject.game_title}_player`).id,
                 allow: ["VIEW_CHANNEL"]
             }
         ]);
 
         // Create the host channel.
-        msg.guild.channels.create(`${gameObject.title}_host_channel`, {
+        msg.guild.channels.create(`${gameObject.game_title}_host_channel`, {
             type: "text",
             permissionOverwrites: [
                 {
@@ -80,20 +80,20 @@ function _createChannels(gameObject, msg, callback) {
                     deny: ["VIEW_CHANNEL"]
                 },
                 {
-                    id: msg.guild.roles.cache.find(role => role.name === `${gameObject.title}_host`).id,
+                    id: msg.guild.roles.cache.find(role => role.name === `${gameObject.game_title}_host`).id,
                     allow: ["VIEW_CHANNEL"]
                 }
             ]
         }).then(channel => {
             channel.setParent(category.id);
 
-            let hostRole = roles.cache.find(role => role.name === `${gameObject.title}_host`);
+            let hostRole = roles.cache.find(role => role.name === `${gameObject.game_title}_host`);
             channel.send(`${hostRole} this is your private channel where you can run \`!admin\` commands.`);
             gameObject.hostChannel = channel.id;
         }).then(() => {
 
             // Create the player channel.
-            msg.guild.channels.create(`${gameObject.title}_player_channel`, {
+            msg.guild.channels.create(`${gameObject.game_title}_player_channel`, {
                 type: "text",
                 permissionOverwrites: [
                     {
@@ -101,19 +101,19 @@ function _createChannels(gameObject, msg, callback) {
                         deny: ["VIEW_CHANNEL"]
                     },
                     {
-                        id: msg.guild.roles.cache.find(role => role.name === `${gameObject.title}_host`).id,
+                        id: msg.guild.roles.cache.find(role => role.name === `${gameObject.game_title}_host`).id,
                         allow: ["VIEW_CHANNEL"]
                     },
                     {
-                        id: msg.guild.roles.cache.find(role => role.name === `${gameObject.title}_player`).id,
+                        id: msg.guild.roles.cache.find(role => role.name === `${gameObject.game_title}_player`).id,
                         allow: ["VIEW_CHANNEL"]
                     }
                 ]
             }).then(channel => {
                 channel.setParent(category.id);
 
-                let hostRole = roles.cache.find(role => role.name === `${gameObject.title}_host`);
-                let playerRole = roles.cache.find(role => role.name === `${gameObject.title}_player`);
+                let hostRole = roles.cache.find(role => role.name === `${gameObject.game_title}_host`);
+                let playerRole = roles.cache.find(role => role.name === `${gameObject.game_title}_player`);
                 channel.send(`${hostRole} ${playerRole} here is a private channel where you can run bot commands. \`!help\` to get started.`);
                 gameObject.playerChannel = channel.id;
 
@@ -183,18 +183,18 @@ function _createRoles(gameName, msg, callback) {
  * @param {function} callback Callback function.
  */
 function _setRoles(gameObject, client, msg, callback) {
-    _createRoles(gameObject.title, msg, () => {
+    _createRoles(gameObject.game_title, msg, () => {
         // Assign the host role.
         let hostUser = msg.guild.members.cache.get(msg.client.users.cache.find(user => user.username === gameObject.host).id);
-        hostUser.roles.add(msg.guild.roles.cache.find(role => role.name === `${gameObject.title}_host`)).catch(error => {
-            msg.channel.send(`Due to permission errors, I was unable to assign the role \`${gameObject.title}_host\` to ${gameObject.host}`);
+        hostUser.roles.add(msg.guild.roles.cache.find(role => role.name === `${gameObject.game_title}_host`)).catch(error => {
+            msg.channel.send(`Due to permission errors, I was unable to assign the role \`${gameObject.game_title}_host\` to ${gameObject.host}`);
         });
 
         // Assign the player roles.
         gameObject.players.forEach(player => {
             let playerUser = msg.guild.members.cache.get(msg.client.users.cache.find(user => user.username === player).id);
-            playerUser.roles.add(msg.guild.roles.cache.find(role => role.name === `${gameObject.title}_player`)).catch(error => {
-                msg.channel.send(`Due to permission errors, I was unable to assign the role \`${gameObject.title}_player\` to ${player}`);
+            playerUser.roles.add(msg.guild.roles.cache.find(role => role.name === `${gameObject.game_title}_player`)).catch(error => {
+                msg.channel.send(`Due to permission errors, I was unable to assign the role \`${gameObject.game_title}_player\` to ${player}`);
             });
         });
 
@@ -213,7 +213,7 @@ function _setRoles(gameObject, client, msg, callback) {
 function _generateCreationUI(gameName, msg) {
     let gameObject = {};
 
-    gameObject.title = gameName;
+    gameObject.game_title = gameName;
     gameObject.host = msg.member.user.username;
     gameObject.players = ["Laggy"];
     gameObject.declined = [];
@@ -272,13 +272,13 @@ function _generateCreationUI(gameName, msg) {
                     if (ui.isHost(gameObject.host, inputUserName) /*&& gameObject.players.length > 0*/) {
                         db.getActiveGame(isActive => {
                             if (isActive) {
-                                return error.error(`Campaign \`${isActive.title}\` is currently active.`, `Notify ${isActive.host} to \`!pause ${isActive.title}\` or \`!end ${isActive.title}\`.`, msg);
+                                return error.error(`Campaign \`${isActive.game_title}\` is currently active.`, `Notify ${isActive.host} to \`!pause ${isActive.game_title}\` or \`!end ${isActive.game_title}\`.`, msg);
                             }
                             gameSetupEmbed.delete();
 
                             _setRoles(gameObject, msg.client, msg, newObject => {
                                 db.insertGame(newObject);
-                                msg.channel.send(`Campaign \`${newObject.title}\` has been created.`);
+                                msg.channel.send(`Campaign \`${newObject.game_title}\` has been created.`);
 
                                 newObject.players.forEach(playerName => {
                                     player.generateClassSelectionUI(newObject, playerName, msg);
@@ -292,7 +292,7 @@ function _generateCreationUI(gameName, msg) {
                     // Host can cancel the campaign.
                     if (ui.isHost(gameObject.host, inputUserName)) {
                         gameSetupEmbed.delete();
-                        msg.channel.send(`Campaign \`${gameObject.title}\` has been cancelled.`);
+                        msg.channel.send(`Campaign \`${gameObject.game_title}\` has been cancelled.`);
                         return;
                     }
                     break;
@@ -318,7 +318,7 @@ function setupGame(rawInput, msg) {
 
         db.getActiveGame(isActive => {
             if (isActive) {
-                return error.error(`Campaign \`${isActive.title}\` is currently active.`, `Notify ${isActive.host} to \`!pause ${isActive.title}\` or \`!end ${isActive.title}\`.`, msg);
+                return error.error(`Campaign \`${isActive.game_title}\` is currently active.`, `Notify ${isActive.host} to \`!pause ${isActive.game_title}\` or \`!end ${isActive.game_title}\`.`, msg);
             }
 
             _generateCreationUI(gameName, msg);
@@ -333,7 +333,7 @@ function setupGame(rawInput, msg) {
 function _getGameEndEmbed(gameObject) {
     return new Discord.MessageEmbed()
         .setColor("0xb04360")
-        .setTitle("Ending Campaign: " + gameObject.title)
+        .setTitle("Ending Campaign: " + gameObject.game_title)
         .setAuthor("Dungeon Master", "https://i.imgur.com/MivKiKL.png")
         .setDescription("Do you want to delete or preserve the game data?")
         .addFields(
@@ -432,10 +432,10 @@ function _generateEndUI(gameObject, msg) {
                     // Player wants to perform a full wipe on the game.
                     if (ui.isHost(gameObject.host, inputUserName)) {
                         gameSetupEmbed.delete();
-                        db.deleteGame(gameObject.title);
-                        _deleteChannels(gameObject.title, msg);
-                        _deleteRoles(gameObject.title, msg);
-                        msg.channel.send(`Campaign \`${gameObject.title}\` has fully deleted.`);
+                        _deleteChannels(gameObject.game_title, msg);
+                        _deleteRoles(gameObject.game_title, msg);
+                        db.deleteGame(gameObject.game_title);
+                        msg.channel.send(`Campaign \`${gameObject.game_title}\` has been fully deleted.`);
                         return;
                     }
                     break;
@@ -451,10 +451,10 @@ function _generateEndUI(gameObject, msg) {
                     // Archive game.
                     if (ui.isHost(gameObject.host, inputUserName)) {
                         gameSetupEmbed.delete();
-                        _deleteRoles(gameObject.title, msg);
-                        _archiveChannels(gameObject.title, msg);
-                        db.archiveGame(gameObject.title);
-                        msg.channel.send(`Campaign \`${gameObject.title}\` has been archived.`);
+                        _deleteRoles(gameObject.game_title, msg);
+                        _archiveChannels(gameObject.game_title, msg);
+                        db.archiveGame(gameObject.game_title);
+                        msg.channel.send(`Campaign \`${gameObject.game_title}\` has been archived.`);
                         return;
                     }
                     break;
@@ -472,7 +472,7 @@ function _generateEndUI(gameObject, msg) {
 function endGame(rawInput, msg) {
     let gameName = _getGameName(rawInput);
     db.getGameInfo(gameName, gameObject => {
-        if (!_checkIfModifiable(gameObject, msg)) {
+        if (!_checkIfModifiable(gameName, gameObject, msg)) {
             return;
         }
         _generateEndUI(gameObject, msg);
@@ -526,13 +526,13 @@ function _pauseChannel(gameName, msg) {
 function pauseGame(rawInput, msg) {
     let gameName = _getGameName(rawInput);
     db.getGameInfo(gameName, gameObject => {
-        if (!_checkIfModifiable(gameObject, msg)) {
+        if (!_checkIfModifiable(gameName, gameObject, msg)) {
             return;
         }
         if (gameObject.activeGame) {
             db.pauseGame(gameName);
             _pauseChannel(gameName, msg);
-            msg.channel.send(`\`${gameObject.title}\` has been paused.`);
+            msg.channel.send(`\`${gameObject.game_title}\` has been paused.`);
         } else {
             return error.error("This is not an active game.", `\`!play ${gameName}\` to set it as an active game.`, msg);
         }
@@ -603,15 +603,15 @@ function playGame(rawInput, msg) {
     let gameName = _getGameName(rawInput);
     db.getActiveGame(isActive => {
         if (isActive) {
-            return error.error(`Campaign \`${isActive.title}\` is currently active.`, `Notify ${isActive.host} to \`!pause ${isActive.title}\` or \`!end ${isActive.title}\`.`, msg);
+            return error.error(`Campaign \`${isActive.game_title}\` is currently active.`, `Notify ${isActive.host} to \`!pause ${isActive.game_title}\` or \`!end ${isActive.game_title}\`.`, msg);
         }
         db.getGameInfo(gameName, gameObject => {
-            if (!_checkIfModifiable(gameObject, msg)) {
+            if (!_checkIfModifiable(gameName, gameObject, msg)) {
                 return;
             }
             db.playGame(gameName);
-            _playChannel(gameObject.title, msg, () => {
-                msg.channel.send(`\`${gameObject.title}\` is now the active game.`);
+            _playChannel(gameObject.game_title, msg, () => {
+                msg.channel.send(`\`${gameObject.game_title}\` is now the active game.`);
             });
         });
     });
@@ -622,7 +622,7 @@ function playGame(rawInput, msg) {
  * @param {object} gameObject The game object.
  * @param {object} msg Contains information about the command sent by the player through discord.
  */
-function _checkIfModifiable(gameObject, msg) {
+function _checkIfModifiable(gameName, gameObject, msg) {
     if (!gameObject) {
         error.error("This game does not exist.", `\`!create ${gameName}\` to start a new game.`, msg);
         return false;

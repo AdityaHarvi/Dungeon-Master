@@ -1,8 +1,7 @@
 const error = require('../util/error'),
-    getInfo = require('../gameInfo/getInfo'),
     displayInfo = require('../displayInfo/displayInfo'),
     items = require('../inventories/items'),
-    diceRoll = require('../util/diceRoll');
+    diceRoll = require('../util/dice');
 
 /**
  * Changes the playerInfo obj and damage based on if the player used a special ability.

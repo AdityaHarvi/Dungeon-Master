@@ -1,9 +1,7 @@
 const fs = require('fs'),
     error = require('./error'),
     remove = require('./removeItem'),
-    getInfo = require('../gameInfo/getInfo'),
-    items = require('../inventories/items'),
-    writeInfo = require('../gameInfo/writeInfo');
+    items = require('../inventories/items');
 
 /**
  * Gives an item from 1 player to another.

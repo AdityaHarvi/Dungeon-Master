@@ -1,6 +1,4 @@
-const getInfo = require('../gameInfo/getInfo'),
-    error = require('./error'),
-    writeInfo = require('../gameInfo/writeInfo');
+const error = require('./error');
 
 function checkURL(imageURL) {
     let pattern = /^https:\/\/i.imgur.com\/\w{7}.(png|gif)$/;

@@ -1,6 +1,5 @@
 const fs = require('fs'),
-    diceRoll = require('../util/diceRoll'),
-    getInfo = require('../gameInfo/getInfo'),
+    diceRoll = require('../util/dice'),
     error = require('../util/error');
 
 /**
