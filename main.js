@@ -22,7 +22,7 @@ const Discord = require("discord.js"),
     ally = require('./admin/ally'),
     purge = require('./admin/purge');
 
-let activeGameObject;
+var activeGameObject;
 
 // Log into the bot.
 client.login(getToken.getToken());
@@ -40,7 +40,7 @@ function setActiveGameObject(newGameObject) {
 
 function _errorChecksPass(gameObject, msg) {
     if (!gameObject) {
-        error.error("Error finding an active game.", "Create one with `!play <campaign name>`.", msg);
+        error.error("Error finding an active game.", "Create one with `!create <campaign name>` or resume a paused game with `!play <campaign name>`.", msg);
         return false;
     }
 
@@ -68,7 +68,10 @@ client.on('message', msg => {
     switch(args[0]) {
         // Handles displaying information on items / spells / abilities / classes / inventory.
         case "help":
-            help.baseMenu(activeGameObject && activeGameObject.host, activeGameObject && activegameObject.game_title, msg);
+            (activeGameObject) ?
+                // FIXME: Do we need to pass in the object?
+                help.baseMenu(activeGameObject.host, activeGameObject.hostChannel, msg) :
+                error.error("Unable to find an active game.", null, msg);
             break;
         case "item":
             (args[1]) ?
@@ -112,6 +115,12 @@ client.on('message', msg => {
         case "roll":
             if (args[1] && isNaN(args[1])) return error.error("Incorrect arguments.", "`!roll <optional: dice size>` is the proper format. Defaults to D20 if no size is given.", msg);
             display.diceRoll(args[1], activeGameObject.game_title, msg);
+            break;
+        case "equip":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            (args[1]) ?
+                equip.equipItem(msg.author.username, msg.author.username, activeGameObject.game_title, args, msg) :
+                error.error("What is the item you want to equip?", "`!equip <item_name>`", msg);
             break;
 
         default:

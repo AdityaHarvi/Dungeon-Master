@@ -19,5 +19,18 @@ function isHost(gameHost, inputUser) {
     return gameHost === inputUser;
 }
 
+/**
+ * Concatinates the user input to create the Campaign Name.
+ * @param {string} rawInput The raw user input.
+ */
+function getName(rawInput) {
+    let name = "";
+    for (let i = 1; i < rawInput.length; i++) {
+        name += rawInput[i] + "_";
+    }
+    return name.slice(0, -1).toLowerCase();
+}
+
 exports.removeReaction = removeReaction;
 exports.isHost = isHost;
+exports.getName = getName;

@@ -85,7 +85,6 @@ function _getAdminMenu() {
         .setTitle("Admin Command Menu")
         .setAuthor("Dungeon Master", "https://i.imgur.com/MivKiKL.png")
         .setThumbnail("https://imgur.com/GKzfjCg.png")
-        .setDescription("Clicking the reaction icons can take you to the respective page.\nClicking 🌐 will return you to the home screen.")
         .addFields(
             {name: '`!add <player> <class> <item> <#>`', value: 'Gives a player an item. The last entry is optional.'},
             {name: '`!remove <player> <class> <item>`', value: 'Removes the item from the player info.'},
@@ -108,7 +107,7 @@ function _getAdminMenu() {
         .setFooter("All commands are lowercase.")
 }
 
-function generateBaseHelpMenu(gameHost, gameName, msg) {
+function generateBaseHelpMenu(gameHost, hostChannel, msg) {
     const baseMenu = _getBaseHelpMenu();
     const combatMenu = _getCombatMenu();
     const inventoryMenu = _getInventoryMenu();
@@ -144,9 +143,7 @@ function generateBaseHelpMenu(gameHost, gameName, msg) {
                     break;
                 case "🕵️":
                     if (gameHost && ui.isHost(gameHost, inputUserName)) {
-                        let channel = msg.client.channel.cache.find(name => name === `${gamename}_host_channel`);
-                        // let host = msg.guild.members.cache.get(msg.client.users.cache.find(user => user.username === gameHost).id);
-                        channel.send(adminMenu);
+                        msg.guild.channels.cache.get(hostChannel).send(adminMenu);
                     } else if (!gameHost) {
                         helpMenu.edit(adminMenu);
                     }

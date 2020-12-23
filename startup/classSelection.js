@@ -165,6 +165,7 @@ function generateClassSelectionUI(gameObject, playerName, msg) {
     playerObject.bonusSpell = 0;
     playerObject.bonusHealing = 0;
     playerObject.luck = 0;
+    playerObject.money = 0;
 
     // Send the message and setup emotes.
     msg.guild.channels.cache.get(gameObject.playerChannel).send(selectionEmbed).then(async classEmbed => {

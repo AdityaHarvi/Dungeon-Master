@@ -5,18 +5,6 @@ const Discord = require("discord.js"),
     db = require("../databaseHandler/dbHandler");
 
 /**
- * Concatinates the user input to create the Campaign Name.
- * @param {string} rawInput The raw user input.
- */
-function _getGameName(rawInput) {
-    let gameName = "";
-    for (let i = 1; i < rawInput.length; i++) {
-        gameName += rawInput[i] + "_";
-    }
-    return gameName.slice(0, -1).toLowerCase();
-}
-
-/**
  * Generates the embed detailing the game info and a list of accepted / declined users.
  * @param {object} gameObject The game object.
  * @param {string[]} acceptedList Accepted player list.
@@ -309,7 +297,7 @@ function _generateCreationUI(gameName, msg) {
  * @param {object} msg Contains information about the command sent by the player through discord.
  */
 function setupGame(rawInput, msg) {
-    let gameName = _getGameName(rawInput);
+    let gameName = ui.getName(rawInput);
 
     db.getGameInfo(gameName, gameObject => {
         if (gameObject) {
@@ -470,7 +458,7 @@ function _generateEndUI(gameObject, msg) {
  * @param {object} msg Contains information about the command sent by the player through discord.
  */
 function endGame(rawInput, msg) {
-    let gameName = _getGameName(rawInput);
+    let gameName = ui.getName(rawInput);
     db.getGameInfo(gameName, gameObject => {
         if (!_checkIfModifiable(gameName, gameObject, msg)) {
             return;
@@ -524,7 +512,7 @@ function _pauseChannel(gameName, msg) {
  * @param {object} msg Contains information about the command sent by the player through discord.
  */
 function pauseGame(rawInput, msg) {
-    let gameName = _getGameName(rawInput);
+    let gameName = ui.getName(rawInput);
     db.getGameInfo(gameName, gameObject => {
         if (!_checkIfModifiable(gameName, gameObject, msg)) {
             return;
@@ -532,7 +520,7 @@ function pauseGame(rawInput, msg) {
         if (gameObject.activeGame) {
             db.pauseGame(gameName);
             _pauseChannel(gameName, msg);
-            msg.channel.send(`\`${gameObject.game_title}\` has been paused.`);
+            msg.react("✅");
         } else {
             return error.error("This is not an active game.", `\`!play ${gameName}\` to set it as an active game.`, msg);
         }
@@ -600,7 +588,7 @@ function _playChannel(gameName, msg, callback) {
  * @param {object} msg Contains information about the command sent by the player through discord.
  */
 function playGame(rawInput, msg) {
-    let gameName = _getGameName(rawInput);
+    let gameName = ui.getName(rawInput);
     db.getActiveGame(isActive => {
         if (isActive) {
             return error.error(`Campaign \`${isActive.game_title}\` is currently active.`, `Notify ${isActive.host} to \`!pause ${isActive.game_title}\` or \`!end ${isActive.game_title}\`.`, msg);
@@ -611,7 +599,7 @@ function playGame(rawInput, msg) {
             }
             db.playGame(gameName);
             _playChannel(gameObject.game_title, msg, () => {
-                msg.channel.send(`\`${gameObject.game_title}\` is now the active game.`);
+                msg.react("✅");
             });
         });
     });

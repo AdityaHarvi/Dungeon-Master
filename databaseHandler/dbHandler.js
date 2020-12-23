@@ -29,6 +29,7 @@ function createDB() {
             username TEXT NOT NULL,
             class TEXT NOT NULL,
             image TEXT,
+            money INTEGER,
             game_title TEXT,
             isBot INTEGER,
             weapon TEXT,
@@ -55,7 +56,6 @@ function createDB() {
             description TEXT,
             image TEXT,
             weapon INTEGER,
-            armor INTEGER,
             bonusHealth INTEGER,
             bonusStrength INTEGER,
             bonusMana INTEGER,
@@ -64,7 +64,39 @@ function createDB() {
             bonusHealing INTEGER,
             bonusLuck INTEGER,
             PRIMARY KEY (item_name)
-        );`
+        );`, (err) => {
+            db.run(`INSERT OR IGNORE INTO items VALUES (
+                :item_name,
+                :equipable,
+                :description,
+                :image,
+                :weapon,
+                :bonusHealth,
+                :bonusStrength,
+                :bonusMana,
+                :bonusArmor,
+                :bonusSpell,
+                :bonusHealing,
+                :bonusLuck
+            );`,
+            ["bare_fist",1,"Just your bare fists.","https://i.imgur.com/trX6GKf.png",1,0,0,0,0,0,0,0]);
+
+            db.run(`INSERT OR IGNORE INTO items VALUES (
+                :item_name,
+                :equipable,
+                :description,
+                :image,
+                :weapon,
+                :bonusHealth,
+                :bonusStrength,
+                :bonusMana,
+                :bonusArmor,
+                :bonusSpell,
+                :bonusHealing,
+                :bonusLuck
+            );`,
+            ["torn_clothing",1,"The bare necessities.","https://imgur.com/9YvRj1P.png",0,0,0,0,0,0,0,0]);
+        }
     );
 
     db.run(
@@ -135,7 +167,6 @@ function newItem(io) {
             :description,
             :image,
             :weapon,
-            :armor,
             :bonusHealth,
             :bonusStrength,
             :bonusMana,
@@ -144,7 +175,7 @@ function newItem(io) {
             :bonusHealing,
             :bonusLuck
         );`,
-        [io.name, io.equipable, io.info, io.image, io.weapon, io.armor, io.bonusHealth, io.bonusStrength, io.bonusMana, io.bonusArmor, io.bonusSpell, io.bonusHealing, io.bonusLuck]
+        [io.name, io.equipable, io.info, io.image, io.weapon, io.bonusHealth, io.bonusStrength, io.bonusMana, io.bonusArmor, io.bonusSpell, io.bonusHealing, io.bonusLuck]
     );
 
     db.close();
@@ -175,112 +206,137 @@ function newSpell(so) {
 }
 
 function equipItem(playerName, gameName, itemName, msg) {
-    _checkIfPlayerHasItem(playerName, gameName, itemName, msg, playerInfo => {
-        if (playerInfo) {
-            getItemInfo(itemName, msg, itemInfo => {
-                let db = new sqlite3.Database("dungeon.db", err => {
-                    if (err) {
-                        console.log(err.message);
-                        return;
+    _checkIfPlayerHasItem(playerName, gameName, itemName, msg, hasItem => {
+        if (hasItem) {
+            getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+                // Get the to-be equiped item information.
+                getItemInfo(itemName, msg, itemInfo => {
+                    if (!itemInfo.equipable) {
+                        return error.error("This item cannot be equiped.", null, msg);
                     }
+
+                    let itemType = "";
+                    (itemInfo.weapon) ? itemType = "weapon" : itemType = "clothing";
+
+                    // Get the currently equiped item information and do the exchange.
+                    getItemInfo(playerInfo[itemType], msg, equipedItemInfo => {
+                        let db = new sqlite3.Database("dungeon.db", err => {
+                            if (err) {
+                                console.log(err.message);
+                                return;
+                            }
+                        });
+
+                        db.run(
+                            `UPDATE player
+                            SET armor = armor - ? + ?,
+                                bonusSpell = bonusSpell - ? + ?,
+                                bonusHealing = bonusHealing - ? + ?,
+                                luck = luck - ? + ?,
+                                maxHealth = maxHealth - ? + ?,
+                                strength = strength - ? + ?,
+                                maxMana = maxMana - ? + ?
+                            WHERE username = ?
+                            AND game_title = ?;`,
+                            [equipedItemInfo.bonusArmor,
+                                itemInfo.bonusArmor,
+                                equipedItemInfo.bonusSpell,
+                                itemInfo.bonusSpell,
+                                equipedItemInfo.bonusHealing,
+                                itemInfo.bonusHealing,
+                                equipedItemInfo.luck,
+                                itemInfo.bonusLuck,
+                                equipedItemInfo.bonusHealth,
+                                itemInfo.bonusHealth,
+                                equipedItemInfo.bonusStrength,
+                                itemInfo.bonusStrength,
+                                equipedItemInfo.bonusMana,
+                                itemInfo.bonusMana,
+                                playerName,
+                                gameName]
+                        );
+
+                        db.run(
+                            `UPDATE player
+                            SET ${itemType} = ?
+                            WHERE username = ?
+                            AND game_title = ?;`,
+                            [itemName, playerName, gameName],
+                            (err) => {
+                                if (err) {
+                                    console.log(err.message);
+                                }
+
+                                msg.react("✅");
+                            }
+                        );
+
+                        db.close();
+                    });
                 });
-
-                db.run(
-                    `UPDATE player
-                    SET armor = armor + ?,
-                        bonusSpell = bonusSpell + ?,
-                        bonusHealing = bonusHealing + ?,
-                        luck = luck + ?,
-                        maxHealth = maxHealth + ?,
-                        strength = strength + ?,
-                        maxMana = maxMana + ?
-                    WHERE username = ?
-                    AND game_title = ?;`,
-                    [itemInfo.bonusArmor, itemInfo.bonusSpell, itemInfo.bonusHealing, itemInfo.bonusLuck, itemInfo.bonusHealth, itemInfo.bonusStrength, itemInfo.bonusMana, playerName, gameName],
-                    (err) => {
-                        if (err) {
-                            console.log(err.message);
-                        }
-
-                        msg.channel.send(`Successfully equiped \`${itemName}\`. Try out \`!info\` to see what bonus's you've got.`);
-                    }
-                );
-
-                db.close();
             });
         }
     });
 }
 
-function unequipItem(playerName, gameName, itemName, msg) {
-    getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+function giveMoney(playerName, gameObject, msg, quantity) {
+    getBaiscPlayerInfo(playerName, gameObject.game_title, msg, playerInfo => {
         if (playerInfo) {
-            let itemToRemove = "";
-            let replacement = "";
+            let db = new sqlite3.Database("dungeon.db", err => {
+                if (err) {
+                    console.log(err.message);
+                    return;
+                }
+            });
 
-            if (playerInfo.clothing === itemName) {
-                itemToRemove = "clothing";
-                replacement = "torn_clothing";
-            } else if (playerInfo.weapon === itemName) {
-                itemToRemove = "weapon";
-                replacement = "bare_fist";
-            } else {
-                return error.error("This item is not equiped.", "Do `!info` to see your currently equiped item(s).", msg);
+            db.run(
+                `UPDATE player
+                SET money = money + ?
+                WHERE username = ?
+                AND game_title = ?;`,
+                [quantity, playerName, gameObject.game_title],
+                (err) => {
+                    msg.guild.channels.cache.get(gameObject.hostChannel).send(`Successfully paid \`${playerName}\`, \`${quantity}\` gold.`);
+                    msg.guild.channels.cache.get(gameObject.playerChannel).send(`\`${playerName}\` just got \`${quantity}\` :coin:!`);
+                }
+            );
+
+            db.close();
+        }
+    });
+}
+
+function spendMoney(playerName, gameObject, msg, quantity, callback) {
+    getBaiscPlayerInfo(playerName, gameObject.game_title, msg, playerInfo => {
+        if (playerInfo) {
+            if (quantity > playerInfo.money) {
+                return error.error(`${playerName} does not have enough money.`, `They are short ${quantity - playerInfo.money} :coin:.`, msg);
             }
 
-            getItemInfo(itemName, msg, itemInfo => {
-                let db = new sqlite3.Database("dungeon.db", err => {
-                    if (err) {
-                        console.log(err.message);
-                        return;
-                    }
-                });
-
-                if (playerInfo.health === playerInfo.maxHealth) {
-                    playerInfo.health -= itemInfo.bonusHealth;
+            let db = new sqlite3.Database("dungeon.db", err => {
+                if (err) {
+                    console.log(err.message);
+                    return;
                 }
-                if (playerInfo.mana === playerInfo.maxMana) {
-                    playerInfo.mana -= itemInfo.bonusMana;
-                }
-
-                db.run(
-                    `UPDATE player
-                    SET armor = armor - ?,
-                        bonusSpell = bonusSpell - ?,
-                        bonusHealing = bonusHealing - ?,
-                        luck = luck - ?,
-                        health = ?,
-                        maxHealth = maxHealth - ?,
-                        strength = strength - ?,
-                        mana = ?,
-                        maxMana = maxMana - ?
-                    WHERE username = ?
-                    AND game_title = ?;`,
-                    [itemInfo.bonusArmor, itemInfo.bonusSpell, itemInfo.bonusHealing, itemInfo.bonusLuck, playerInfo.health, itemInfo.bonusHealth, itemInfo.bonusStrength, playerInfo.mana, itemInfo.bonusMana, playerName, gameName]
-                );
-
-                db.run(
-                    `UPDATE player
-                    SET ${itemToRemove} = ?
-                    WHERE username = ?
-                    AND game_title = ?;`,
-                    [replacement, playerName, gameName],
-                    (err) => {
-                        if (err) {
-                            console.log(err.message);
-                        }
-
-                        msg.channel.send(`Successfully equiped \`${itemName}\`. Try out \`!info\` to see what bonus's you've got.`);
-                    }
-                );
-
-                db.close();
             });
+
+            db.run(
+                `UPDATE player
+                SET money = money - ?
+                WHERE username = ?
+                AND game_title = ?;`,
+                [quantity, playerName, gameObject.game_title],
+                (err) => {
+                    if (callback) callback();
+                }
+            );
+
+            db.close();
         }
     });
 }
 
-function _checkIfPlayerHasItem(playerName, gameName, itemName, msg) {
+function _checkIfPlayerHasItem(playerName, gameName, itemName, msg, callback) {
     let db = new sqlite3.Database("dungeon.db", err => {
         if (err) {
             console.log(err.message);
@@ -301,7 +357,7 @@ function _checkIfPlayerHasItem(playerName, gameName, itemName, msg) {
             }
 
             if (!row) {
-                error.error("Item not found in your inventory.", "Try checking your spelling", msg);
+                error.error("Item not found in your inventory.", "Try checking your spelling.", msg);
             }
 
             if (callback) callback(row);
@@ -511,13 +567,15 @@ function giveItem(playerName, gameObject, itemName, quantity, msg) {
                     });
 
                     // If the player does not already have the item, then add it in.
-                    db.run(`INSERT OR IGNORE INTO player_items VALUES (
+                    db.run(
+                        `INSERT OR IGNORE INTO player_items VALUES (
                         :item_name,
                         :username,
                         :quantity,
                         :game_title
-                    );`,
-                    [itemName, playerName, 0, gameObject.game_title]);
+                        );`,
+                        [itemName, playerName, 0, gameObject.game_title]
+                    );
 
                     // If the player has the item, increment the number.
                     db.run(
@@ -592,6 +650,7 @@ function addPlayer(po) {
             :username,
             :class,
             :image,
+            :money,
             :game_title,
             :isBot,
             :weapon,
@@ -607,7 +666,7 @@ function addPlayer(po) {
             :mana,
             :maxMana
         );`,
-        [po.username, po.class, po.image, po.game, po.isBot, po.weapon, po.clothing, po.maxInventory, po.armor, po.bonusSpell, po.bonusHealing, po.luck, po.health, po.maxHealth, po.strength, po.mana, po.maxMana]
+        [po.username, po.class, po.image, po.money, po.game, po.isBot, po.weapon, po.clothing, po.maxInventory, po.armor, po.bonusSpell, po.bonusHealing, po.luck, po.health, po.maxHealth, po.strength, po.mana, po.maxMana]
     );
 
     po.items.forEach(itemName => {
@@ -805,9 +864,9 @@ function archiveGame(gameName) {
         }
     );
 
-    getActiveGame();
-
     db.close();
+
+    getActiveGame();
 }
 
 function pauseGame(gameName) {
@@ -827,10 +886,10 @@ function pauseGame(gameName) {
             if (err) {
                 console.log(err.message);
             }
+
+            getActiveGame();
         }
     );
-
-    setActive.setActiveGameObject(null);
 
     db.close();
 }
@@ -849,11 +908,7 @@ function playGame(gameName) {
         WHERE game_title = ?;`,
         [gameName],
         (err) => {
-            if (err) {
-                console.log(err.message);
-            }
-
-            setActive.setActiveGameObject(gameObject);
+            getActiveGame();
         }
     );
 

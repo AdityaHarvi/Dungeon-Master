@@ -7,14 +7,6 @@ const items = require('../inventories/items'),
     error = require('../util/error');
 
 /**
- * This function replaces an empty array with keyword "None" to correct the empty-discord-embed issue. 
- * @param {array} objectToCheck The array to check if it is empty.
- */
-function checkIfExists(objectToCheck) {
-    return (objectToCheck.length === 0) ? "None" : objectToCheck;
-}
-
-/**
  * Populates the fields for the jounal embed.
  * @param {object} playerInfo The player object.
  */
@@ -120,11 +112,12 @@ function displayAttactInfo(playerInfo, itemInfo, extraInfo, msg) {
 }
 
 
+
 function _getPlayerInfoEmbed(playerInfo, weaponInfo, clothingInfo) {
     let bonusArmor = "\u200b";
 
     if (playerInfo.armor > 0) {
-        bonusArmor = `Total Armor ${playerInfo.armor}`;
+        bonusArmor = `Total Armor: ${playerInfo.armor}`;
     }
 
     let itemBonuses = _getItemBonus(weaponInfo);
@@ -138,8 +131,9 @@ function _getPlayerInfoEmbed(playerInfo, weaponInfo, clothingInfo) {
             {name: `❤️ ${playerInfo.health} / ${playerInfo.maxHealth}`, value: bonusArmor, inline: true},
             {name: `💪 ${playerInfo.strength}`, value: "\u200b", inline: true},
             {name: `🧪 ${playerInfo.mana} / ${playerInfo.maxMana}`, value: "\u200b", inline: true},
-            {name: `🥼: ${playerInfo.clothing}`, value: itemBonuses, inline: true},
-            {name: `🗡️: ${playerInfo.weapon}`, value: clothingBonuses, inline: true},
+            {name: `🥼: ${playerInfo.clothing}`, value: clothingBonuses, inline: true},
+            {name: `🗡️: ${playerInfo.weapon}`, value: itemBonuses, inline: true},
+            {name: `:coin: ${playerInfo.money}`, value: "\u200b", inline: true},
             {name: "\u200b", value: "\u200b"},
             {name: "]---SPELLS---[", value: playerInfo.spellList, inline: true},
             {name: `]---TOOLS (${playerInfo.occupiedInventory}/${playerInfo.maxInventory})---[`, value: playerInfo.itemString, inline: true}
@@ -152,8 +146,9 @@ function _getItemBonus(itemInfo) {
     if (itemInfo.bonusMana) bonusList += `+ ${itemInfo.bonusMana} Mana\n`;
     if (itemInfo.bonusStrength) bonusList += `+ ${itemInfo.bonusStrength} Strength\n`;
     if (itemInfo.bonusSpell) bonusList += `+ ${itemInfo.bonusSpell} Spell Damage\n`;
-    if (itemInfo.bonusHealing) bonusList += `+ ${itemInfo.bonusHealing} Healing Power \n`;
-    if (itemInfo.bonusLuck) bonusList += `+ ${itemInfo.bonusLuck} Luck \n`;
+    if (itemInfo.bonusHealing) bonusList += `+ ${itemInfo.bonusHealing} Healing Power\n`;
+    if (itemInfo.bonusArmor) bonusList += `+ ${itemInfo.bonusArmor} Armor\n`;
+    if (itemInfo.bonusLuck) bonusList += `+ ${itemInfo.bonusLuck} Luck`;
     return (bonusList === "") ? "- No Bonuses" : bonusList;
 }
 
@@ -179,9 +174,13 @@ function _parsePlayerItems(playerInfo) {
 function _parsePlayerSpells(playerInfo) {
     playerInfo.spellList = [];
 
-    playerInfo.spells.forEach(spellInfo => {
-        playerInfo.spellList.push(spellInfo.spell_name);
-    });
+    if (playerInfo.spellList.length === 0) {
+        playerInfo.spellList = "None";
+    } else {
+        playerInfo.spells.forEach(spellInfo => {
+            playerInfo.spellList.push(spellInfo.spell_name);
+        });
+    }
 
     return playerInfo;
 }
@@ -254,14 +253,6 @@ function _getDiceEmbed(playerInfo, roll, finalRoll, footerText, imageURL, diceSi
         .setFooter(footerText);
 }
 
-function _getName(rawInput) {
-    let objectName = "";
-    for (let i = 1; i < rawInput.length; i++) {
-        objectName += rawInput[i] + "_";
-    }
-    return objectName.slice(0, -1).toLowerCase();
-}
-
 function _getGameObjectEmbed(inventoryObject) {
     return new Discord.MessageEmbed()
         .setColor(inventoryObject.color)
@@ -269,7 +260,8 @@ function _getGameObjectEmbed(inventoryObject) {
         .setAuthor("Dungeon Master", "https://i.imgur.com/MivKiKL.png")
         .setThumbnail(inventoryObject.image)
         .addFields(
-            {name: inventoryObject.header, value: inventoryObject.info, inline: true}
+            {name: inventoryObject.header, value: inventoryObject.description},
+            {name: inventoryObject.bonusHeader, value: inventoryObject.bonuses}
         )
         .setFooter(inventoryObject.footer)
 }
@@ -280,16 +272,20 @@ function _getGameObjectEmbed(inventoryObject) {
  * @param {object} msg The object containing information about the message sent through discord.
  */
 function itemInfo(rawInput, msg) {
-    let itemName = _getName(rawInput);
-    if (!items.items[itemName]) return error.error(`\`${itemName}\` does not exist.`, "Check your spelling? (Case insensitive)", msg);
+    let itemName = ui.getName(rawInput);
+    db.getItemInfo(itemName, msg, itemInfo => {
+        if (itemInfo) {
+            itemInfo.name = itemInfo.item_name;
+            itemInfo.color = 0x7734eb;
+            itemInfo.header = `${itemInfo.weapon ? "🗡️" : "🥼"} ${itemInfo.equipable ? "Equipable" : "Consumable"}`;
+            itemInfo.footer = `${itemInfo.equipable ? `!equip ${itemName}` : `!use ${itemName}`}`;
+            itemInfo.bonusHeader = "Bonuses:"
+            itemInfo.bonuses = _getItemBonus(itemInfo);
 
-    let itemInfo = items.items[itemName];
-
-    itemInfo.color = 0x7734eb;
-    itemInfo.header = `${itemInfo.equipable ? "Equipable" : "Consumable"}`;
-    itemInfo.footer = `${itemInfo.equipable ? `!equip ${itemName}` : `!use ${itemName}`}`
-    const itemInfoEmbed = _getGameObjectEmbed(itemInfo);
-    msg.channel.send(itemInfoEmbed);
+            const itemInfoEmbed = _getGameObjectEmbed(itemInfo);
+            msg.channel.send(itemInfoEmbed);
+        }
+    });
 }
 
 /**
@@ -298,17 +294,20 @@ function itemInfo(rawInput, msg) {
  * @param {object} msg The object containing information about the message sent through discord.
  */
 function spellInfo(rawInput, msg) {
-    let spellName = _getName(rawInput);
-    if (!spells.spells[spellName]) return error.error(`\`${spellName}\` does not exist.`, "Check your spelling? (Case insensitive)", msg);
+    let spellName = ui.getName(rawInput);
+    db.getSpellInfo(spellName, msg, spellInfo => {
+        if (spellInfo) {
+            spellInfo.name = spellInfo.spell_name;
+            spellInfo.color = 0x34ebab;
+            spellInfo.header = `Mana Cost: ${spellInfo.mana}`;
+            spellInfo.footer = `!cast ${spellName}`;
+            spellInfo.bonusHeader = "Effects:";
+            spellInfo.bonuses = _getItemBonus(itemInfo); // FIXME. Get the proper bonuses.
 
-    let spellInfo = spells.spells[spellName];
-
-    spellInfo.color = 0x34ebab;
-    spellInfo.header = `Mana Cost: ${spellInfo.mana}`;
-    spellInfo.footer = `!cast ${spellName}`;
-
-    const spellInfoEmbed = _getGameObjectEmbed(spellInfo);
-    msg.channel.send(spellInfoEmbed);
+            const spellInfoEmbed = _getGameObjectEmbed(spellInfo);
+            msg.channel.send(spellInfoEmbed);
+        }
+    });
 }
 
 /**
