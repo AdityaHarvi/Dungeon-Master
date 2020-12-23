@@ -119,63 +119,70 @@ function displayAttactInfo(playerInfo, itemInfo, extraInfo, msg) {
     return msg.channel.send({embed: attackEmbed});
 }
 
-function _getPlayerInfoEmbed(playerInfo, itemInfo) {
+
+function _getPlayerInfoEmbed(playerInfo, weaponInfo, clothingInfo) {
     let bonusArmor = "\u200b";
-    let bonusStrength = "\u200b";
-    let bonusMana = "\u200b";
 
     if (playerInfo.armor > 0) {
-        bonusArmor = `+${playerInfo.armor} Armor\n`;
+        bonusArmor = `Total Armor ${playerInfo.armor}`;
     }
-    if (itemInfo.health > 0) {
-        bonusArmor = `+${itemInfo.health} Health`;
-    }
-    if (itemInfo.strength > 0) {
-        bonusStrength = `+${itemInfo.strength} Strength`;
-    }
-    if (itemInfo.mana > 0) {
-        bonusMana = `+${itemInfo.mana} Mana`;
-    }
+
+    let itemBonuses = _getItemBonus(weaponInfo);
+    let clothingBonuses = _getItemBonus(clothingInfo);
 
     return new Discord.MessageEmbed()
         .setColor("0xd8eb34")
         .setTitle(`${playerInfo.username}'s Inventory [${playerInfo.class}]`)
         .setThumbnail(playerInfo.image)
         .addFields(
-            {name: `❤️ ${playerInfo.health} / ${playerInfo.maxHealth + itemInfo.health}`, value: bonusArmor, inline: true},
-            {name: `💪 ${playerInfo.strength + itemInfo.strength}`, value: bonusStrength, inline: true},
-            {name: `🧪 ${playerInfo.mana} / ${playerInfo.maxMana + itemInfo.mana}`, value: bonusMana, inline: true},
-            {name: `Equiped Armor: ${playerInfo.clothing}`, value: `**Equiped Weapon: ${playerInfo.weapon}**`},
-            {name: '|---------SPELLS---------|', value: checkIfExists(playerObj.spells), inline: true},
-            {name: `|------TOOLS (${playerInfo.totalInventory}/${playerObj.maxInventory})------|`, value: checkIfExists(playerObj.items), inline: true}
+            {name: `❤️ ${playerInfo.health} / ${playerInfo.maxHealth}`, value: bonusArmor, inline: true},
+            {name: `💪 ${playerInfo.strength}`, value: "\u200b", inline: true},
+            {name: `🧪 ${playerInfo.mana} / ${playerInfo.maxMana}`, value: "\u200b", inline: true},
+            {name: `🥼: ${playerInfo.clothing}`, value: itemBonuses, inline: true},
+            {name: `🗡️: ${playerInfo.weapon}`, value: clothingBonuses, inline: true},
+            {name: "\u200b", value: "\u200b"},
+            {name: "]---SPELLS---[", value: playerInfo.spellList, inline: true},
+            {name: `]---TOOLS (${playerInfo.occupiedInventory}/${playerInfo.maxInventory})---[`, value: playerInfo.itemString, inline: true}
         );
 }
 
-function _parsePlayerArrays(arr) {
-    if (arr.length === 0) {
-        return "None";
-    }
-
-    let displayString = "";
-    arr.forEach(itemObject => {
-        displayString += itemObject.item_name + "\n";
-    });
-
-    return displayString;
+function _getItemBonus(itemInfo) {
+    let bonusList = "";
+    if (itemInfo.bonusHealth) bonusList += `+ ${itemInfo.bonusHealth} Health\n`;
+    if (itemInfo.bonusMana) bonusList += `+ ${itemInfo.bonusMana} Mana\n`;
+    if (itemInfo.bonusStrength) bonusList += `+ ${itemInfo.bonusStrength} Strength\n`;
+    if (itemInfo.bonusSpell) bonusList += `+ ${itemInfo.bonusSpell} Spell Damage\n`;
+    if (itemInfo.bonusHealing) bonusList += `+ ${itemInfo.bonusHealing} Healing Power \n`;
+    if (itemInfo.bonusLuck) bonusList += `+ ${itemInfo.bonusLuck} Luck \n`;
+    return (bonusList === "") ? "- No Bonuses" : bonusList;
 }
 
 function _parsePlayerItems(playerInfo) {
-    playerInfo.totalInventory = 0;
-    playerInfo.itemString = _parsePlayerArrays(playerInfo.items);
+    playerInfo.occupiedInventory = 0;
+    playerInfo.itemString = "";
+
+    if (playerInfo.items.length === 0) {
+        playerInfo.itemString = "None";
+    } else {
+        playerInfo.items.forEach(itemObject => {
+            playerInfo.itemString += `${itemObject.quantity}: ${itemObject.item_name}\n`;
+        });
+    }
+
     playerInfo.items.forEach(itemObject => {
-        totalInventory += itemObject.quantity;
+        playerInfo.occupiedInventory += itemObject.quantity;
     });
 
     return playerInfo;
 }
 
 function _parsePlayerSpells(playerInfo) {
-    playerInfo.spellString = _parsePlayerArrays(playerInfo.spells);
+    playerInfo.spellList = [];
+
+    playerInfo.spells.forEach(spellInfo => {
+        playerInfo.spellList.push(spellInfo.spell_name);
+    });
+
     return playerInfo;
 }
 
@@ -184,25 +191,29 @@ function _parsePlayerSpells(playerInfo) {
  * @param {string} playerName The name of the player.
  * @param {object} msg Contains information about the command sent by the player through discord.
  */
-function displayPlayerInfo(playerName, gameObject, msg) {
+function playerInfo(playerName, gameObject, msg) {
     if (playerName !== msg.author.username && !ui.isHost(gameObject.host, playerName)) {
         return error.error("This is a host only command.", "You cannot view another members inventory.", msg);
     }
 
     db.getFullPlayerInfo(playerName, gameObject.game_title, msg, playerInfo => {
         if (!playerInfo) return;
+        db.getItemInfo(playerInfo.weapon, msg, weaponInfo => {
+            if (!weaponInfo) return;
+            db.getItemInfo(playerInfo.clothing, msg, clothingInfo => {
+                if (!clothingInfo) return;
 
-        playerInfo = _parsePlayerItems(playerInfo);
-        playerInfo = _parsePlayerSpells(playerInfo);
+                playerInfo = _parsePlayerItems(playerInfo);
+                playerInfo = _parsePlayerSpells(playerInfo);
 
-        console.log(playerInfo);
+                let inventoryEmbed = _getPlayerInfoEmbed(playerInfo, weaponInfo, clothingInfo);
+                msg.author.send(inventoryEmbed);
+            });
+        });
     });
-
-    // msg.author.send({embed: characterInformationEmbed});
 }
 
-
-function displayDiceRoll(diceSize=20, gameName, msg) {
+function diceRoll(diceSize=20, gameName, msg) {
     db.getBaiscPlayerInfo(msg.author.username, gameName, msg, playerInfo => {
         let imageURL = "";
         let footerText = " ";
@@ -467,5 +478,5 @@ function classMenuUi(msg) {
 exports.itemInfo = itemInfo;
 exports.spellInfo = spellInfo;
 exports.classMenuUi = classMenuUi;
-exports.displayPlayerInfo = displayPlayerInfo;
-exports.diceRoll = displayDiceRoll;
+exports.playerInfo = playerInfo;
+exports.diceRoll = diceRoll;

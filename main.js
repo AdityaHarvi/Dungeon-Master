@@ -84,7 +84,7 @@ client.on('message', msg => {
             display.classMenuUi(msg);
             break;
         case "info":
-            if (_errorChecksPass(activeGameObject)) display.displayPlayerInfo(msg.author.username, activeGameObject, msg);
+            if (_errorChecksPass(activeGameObject, msg)) display.playerInfo(msg.author.username, activeGameObject, msg);
             break
 
         // Handles game status.
@@ -115,7 +115,7 @@ client.on('message', msg => {
             break;
 
         default:
-            if (activeGameObject) database.giveSpell("Laggy", activeGameObject, "huzzah", msg);
+            // if (activeGameObject) database.giveSpell("Laggy", activeGameObject, "huzzah", msg);
             msg.react("❓");
     }
 });

@@ -5,7 +5,7 @@ const sqlite3 = require("sqlite3").verbose(),
 function createDB() {
     let db = new sqlite3.Database("dungeon.db");
 
-    db.get("PRAGMA foreign_keys = ON");
+    db.get("PRAGMA foreign_keys = ON;");
 
     db.run(
         `CREATE TABLE IF NOT EXISTS game (
@@ -28,6 +28,7 @@ function createDB() {
         `CREATE TABLE IF NOT EXISTS player (
             username TEXT NOT NULL,
             class TEXT NOT NULL,
+            image TEXT,
             game_title TEXT,
             isBot INTEGER,
             weapon TEXT,
@@ -38,8 +39,10 @@ function createDB() {
             bonusHealing INTEGER,
             luck INTEGER,
             health INTEGER,
+            maxHealth INTEGER,
             strength INTEGER,
             mana INTEGER,
+            maxMana INTEGER,
             PRIMARY KEY (username, game_title),
             FOREIGN KEY (game_title) REFERENCES game ON DELETE CASCADE
         );`
@@ -53,9 +56,13 @@ function createDB() {
             image TEXT,
             weapon INTEGER,
             armor INTEGER,
-            health INTEGER,
-            strength INTEGER,
-            mana INTEGER,
+            bonusHealth INTEGER,
+            bonusStrength INTEGER,
+            bonusMana INTEGER,
+            bonusArmor INTEGER,
+            bonusSpell INTEGER,
+            bonusHealing INTEGER,
+            bonusLuck INTEGER,
             PRIMARY KEY (item_name)
         );`
     );
@@ -123,17 +130,21 @@ function newItem(io) {
 
     db.run(
         `INSERT INTO items VALUES (
-            :item_name
-            :equipable
-            :description
-            :image
-            :weapon
-            :armor
-            :health
-            :strength
-            :mana
+            :item_name,
+            :equipable,
+            :description,
+            :image,
+            :weapon,
+            :armor,
+            :bonusHealth,
+            :bonusStrength,
+            :bonusMana,
+            :bonusArmor,
+            :bonusSpell,
+            :bonusHealing,
+            :bonusLuck
         );`,
-        [io.name, io.equipable, io.info, io.image, io.weapon, io.armor, io.health, io.strength, io.mana]
+        [io.name, io.equipable, io.info, io.image, io.weapon, io.armor, io.bonusHealth, io.bonusStrength, io.bonusMana, io.bonusArmor, io.bonusSpell, io.bonusHealing, io.bonusLuck]
     );
 
     db.close();
@@ -149,15 +160,152 @@ function newSpell(so) {
 
     db.run(
         `INSERT INTO spells VALUES (
-            :spell_name
-            :description
-            :image
-            :type
-            :mana_cost
-            :damage
+            :spell_name,
+            :description,
+            :image,
+            :type,
+            :mana_cost,
+            :damage,
             :bonus_roll
         );`,
         [so.name, so.info, so.image, so.type, so.mana, so.damage, so.bonus_roll]
+    );
+
+    db.close();
+}
+
+function equipItem(playerName, gameName, itemName, msg) {
+    _checkIfPlayerHasItem(playerName, gameName, itemName, msg, playerInfo => {
+        if (playerInfo) {
+            getItemInfo(itemName, msg, itemInfo => {
+                let db = new sqlite3.Database("dungeon.db", err => {
+                    if (err) {
+                        console.log(err.message);
+                        return;
+                    }
+                });
+
+                db.run(
+                    `UPDATE player
+                    SET armor = armor + ?,
+                        bonusSpell = bonusSpell + ?,
+                        bonusHealing = bonusHealing + ?,
+                        luck = luck + ?,
+                        maxHealth = maxHealth + ?,
+                        strength = strength + ?,
+                        maxMana = maxMana + ?
+                    WHERE username = ?
+                    AND game_title = ?;`,
+                    [itemInfo.bonusArmor, itemInfo.bonusSpell, itemInfo.bonusHealing, itemInfo.bonusLuck, itemInfo.bonusHealth, itemInfo.bonusStrength, itemInfo.bonusMana, playerName, gameName],
+                    (err) => {
+                        if (err) {
+                            console.log(err.message);
+                        }
+
+                        msg.channel.send(`Successfully equiped \`${itemName}\`. Try out \`!info\` to see what bonus's you've got.`);
+                    }
+                );
+
+                db.close();
+            });
+        }
+    });
+}
+
+function unequipItem(playerName, gameName, itemName, msg) {
+    getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+        if (playerInfo) {
+            let itemToRemove = "";
+            let replacement = "";
+
+            if (playerInfo.clothing === itemName) {
+                itemToRemove = "clothing";
+                replacement = "torn_clothing";
+            } else if (playerInfo.weapon === itemName) {
+                itemToRemove = "weapon";
+                replacement = "bare_fist";
+            } else {
+                return error.error("This item is not equiped.", "Do `!info` to see your currently equiped item(s).", msg);
+            }
+
+            getItemInfo(itemName, msg, itemInfo => {
+                let db = new sqlite3.Database("dungeon.db", err => {
+                    if (err) {
+                        console.log(err.message);
+                        return;
+                    }
+                });
+
+                if (playerInfo.health === playerInfo.maxHealth) {
+                    playerInfo.health -= itemInfo.bonusHealth;
+                }
+                if (playerInfo.mana === playerInfo.maxMana) {
+                    playerInfo.mana -= itemInfo.bonusMana;
+                }
+
+                db.run(
+                    `UPDATE player
+                    SET armor = armor - ?,
+                        bonusSpell = bonusSpell - ?,
+                        bonusHealing = bonusHealing - ?,
+                        luck = luck - ?,
+                        health = ?,
+                        maxHealth = maxHealth - ?,
+                        strength = strength - ?,
+                        mana = ?,
+                        maxMana = maxMana - ?
+                    WHERE username = ?
+                    AND game_title = ?;`,
+                    [itemInfo.bonusArmor, itemInfo.bonusSpell, itemInfo.bonusHealing, itemInfo.bonusLuck, playerInfo.health, itemInfo.bonusHealth, itemInfo.bonusStrength, playerInfo.mana, itemInfo.bonusMana, playerName, gameName]
+                );
+
+                db.run(
+                    `UPDATE player
+                    SET ${itemToRemove} = ?
+                    WHERE username = ?
+                    AND game_title = ?;`,
+                    [replacement, playerName, gameName],
+                    (err) => {
+                        if (err) {
+                            console.log(err.message);
+                        }
+
+                        msg.channel.send(`Successfully equiped \`${itemName}\`. Try out \`!info\` to see what bonus's you've got.`);
+                    }
+                );
+
+                db.close();
+            });
+        }
+    });
+}
+
+function _checkIfPlayerHasItem(playerName, gameName, itemName, msg) {
+    let db = new sqlite3.Database("dungeon.db", err => {
+        if (err) {
+            console.log(err.message);
+            return;
+        }
+    });
+
+    db.get(
+        `SELECT *
+        FROM player_items
+        WHERE username = ?
+        AND item_name = ?
+        AND game_title = ?;`,
+        [playerName, itemName, gameName],
+        (err, row) => {
+            if (err) {
+                console.log(err.message);
+            }
+
+            if (!row) {
+                error.error("Item not found in your inventory.", "Try checking your spelling", msg);
+            }
+
+            if (callback) callback(row);
+        }
     );
 
     db.close();
@@ -231,7 +379,7 @@ function getPlayerItems(playerName, gameName, callback) {
     });
 
     db.all(
-        `SELECT *
+        `SELECT item_name, quantity
         FROM player_items
         WHERE username = ?
         AND game_title = ?;`,
@@ -256,7 +404,7 @@ function getPlayerSpells(playerName, gameName, callback) {
     });
 
     db.all(
-        `SELECT *
+        `SELECT spell_name
         FROM player_spells
         WHERE username = ?
         AND game_title = ?;`,
@@ -443,6 +591,7 @@ function addPlayer(po) {
         `INSERT INTO player VALUES (
             :username,
             :class,
+            :image,
             :game_title,
             :isBot,
             :weapon,
@@ -453,10 +602,12 @@ function addPlayer(po) {
             :bonusHealing,
             :luck,
             :health,
+            :maxHealth,
             :strength,
-            :mana
+            :mana,
+            :maxMana
         );`,
-        [po.username, po.class, po.game, po.isBot, po.weapon, po.clothing, po.maxInventory, po.armor, po.bonusSpell, po.bonusHealing, po.luck, po.health, po.strength, po.mana]
+        [po.username, po.class, po.image, po.game, po.isBot, po.weapon, po.clothing, po.maxInventory, po.armor, po.bonusSpell, po.bonusHealing, po.luck, po.health, po.maxHealth, po.strength, po.mana, po.maxMana]
     );
 
     po.items.forEach(itemName => {
@@ -547,7 +698,7 @@ function getActiveGame(callback) {
     db.get(
         `SELECT *
         FROM game
-        WHERE activeGame = 1`,
+        WHERE activeGame = 1;`,
         (err, row) => {
             if (err) {
                 console.log(err.message);
@@ -743,3 +894,4 @@ exports.getBaiscPlayerInfo = getBaiscPlayerInfo;
 exports.getFullPlayerInfo = getFullPlayerInfo;
 exports.getPlayerItems = getPlayerItems;
 exports.getPlayerSpells = getPlayerSpells;
+exports.equipItem = equipItem;
