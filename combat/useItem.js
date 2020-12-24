@@ -1,5 +1,4 @@
-const removeItem = require('../util/removeItem'),
-    error = require('../util/error'),
+const error = require('../util/error'),
     items = require('../inventories/items');
 
 /**

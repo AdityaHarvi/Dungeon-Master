@@ -1,6 +1,5 @@
 const fs = require('fs'),
     error = require('./error'),
-    remove = require('./removeItem'),
     items = require('../inventories/items');
 
 /**

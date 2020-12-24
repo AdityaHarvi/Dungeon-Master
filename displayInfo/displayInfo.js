@@ -301,8 +301,8 @@ function spellInfo(rawInput, msg) {
             spellInfo.color = 0x34ebab;
             spellInfo.header = `Mana Cost: ${spellInfo.mana}`;
             spellInfo.footer = `!cast ${spellName}`;
-            spellInfo.bonusHeader = "Effects:";
-            spellInfo.bonuses = _getItemBonus(itemInfo); // FIXME. Get the proper bonuses.
+            spellInfo.bonusHeader = "\u200b";
+            spellInfo.bonuses = "\u200b";
 
             const spellInfoEmbed = _getGameObjectEmbed(spellInfo);
             msg.channel.send(spellInfoEmbed);

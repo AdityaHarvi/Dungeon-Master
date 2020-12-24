@@ -8,8 +8,7 @@ const Discord = require("discord.js"),
     display = require('./displayInfo/displayInfo'),
     upload = require('./util/upload'),
     help = require('./displayInfo/help'),
-    drop = require('./util/removeItem'),
-    equip = require('./util/equip'),
+    inv = require('./util/inventory'),
     transfer = require('./util/transferItem'),
     journal = require('./util/journal'),
     attack = require('./combat/attack'),
@@ -76,12 +75,12 @@ client.on('message', msg => {
         case "item":
             (args[1]) ?
                 display.itemInfo(args, msg) :
-                error.error("What is the item name?", "`!item <name>`", msg);
+                error.error("What is the item name?", "`!item <item name>`", msg);
             break;
         case "spell":
             (args[1]) ?
                 display.spellInfo(args, msg) :
-                error.error("What is the spell name?", "!spell <name>", msg);
+                error.error("What is the spell name?", "!spell `<spell name>`", msg);
             break;
         case "class":
             display.classMenuUi(msg);
@@ -119,12 +118,16 @@ client.on('message', msg => {
         case "equip":
             if (!_errorChecksPass(activeGameObject, msg)) return;
             (args[1]) ?
-                equip.equipItem(msg.author.username, msg.author.username, activeGameObject.game_title, args, msg) :
-                error.error("What is the item you want to equip?", "`!equip <item_name>`", msg);
+                inv.equip(msg.author.username, msg.author.username, activeGameObject, args, msg) :
+                error.error("What is the item you want to equip?", "`!equip <item name>`", msg);
+            break;
+        case "drop":
+            (args[1]) ?
+                inv.drop(msg.author.username, msg.author.username, activeGameObject, args, msg) :
+                error.error("What is the item name?", "This command is a little funky. Don't forget the `-` before the name and quantity.\n`!drop -<item name> -<quantity: optional>`", msg);
             break;
 
         default:
-            // if (activeGameObject) database.giveSpell("Laggy", activeGameObject, "huzzah", msg);
             msg.react("❓");
     }
 });

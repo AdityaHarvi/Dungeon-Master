@@ -220,6 +220,12 @@ function equipItem(playerName, gameName, itemName, msg) {
 
                     // Get the currently equiped item information and do the exchange.
                     getItemInfo(playerInfo[itemType], msg, equipedItemInfo => {
+                        let simulatedMaxHp = playerInfo.maxHealth - equipedItemInfo.bonusHealth + itemInfo.bonusHealth;
+                        let simulatedMaxMana = playerInfo.maxMana - equipedItemInfo.maxMana + itemInfo.maxMana;
+
+                        if (playerInfo.health > simulatedMaxHp) playerInfo.health = simulatedMaxHp;
+                        if (playerInfo.mana > simulatedMaxMana) playerInfo.mana = simulatedMaxMana;
+
                         let db = new sqlite3.Database("dungeon.db", err => {
                             if (err) {
                                 console.log(err.message);
@@ -234,8 +240,10 @@ function equipItem(playerName, gameName, itemName, msg) {
                                 bonusHealing = bonusHealing - ? + ?,
                                 luck = luck - ? + ?,
                                 maxHealth = maxHealth - ? + ?,
+                                health = ?,
                                 strength = strength - ? + ?,
-                                maxMana = maxMana - ? + ?
+                                maxMana = maxMana - ? + ?,
+                                mana = ?
                             WHERE username = ?
                             AND game_title = ?;`,
                             [equipedItemInfo.bonusArmor,
@@ -248,10 +256,12 @@ function equipItem(playerName, gameName, itemName, msg) {
                                 itemInfo.bonusLuck,
                                 equipedItemInfo.bonusHealth,
                                 itemInfo.bonusHealth,
+                                playerInfo.health,
                                 equipedItemInfo.bonusStrength,
                                 itemInfo.bonusStrength,
                                 equipedItemInfo.bonusMana,
                                 itemInfo.bonusMana,
+                                playerInfo.mana,
                                 playerName,
                                 gameName]
                         );
@@ -274,6 +284,67 @@ function equipItem(playerName, gameName, itemName, msg) {
                         db.close();
                     });
                 });
+            });
+        }
+    });
+}
+
+function dropItem(playerName, gameName, itemName, quantity=1, msg) {
+    if (itemName === "torn_clothing" || itemName === "bare_fist") {
+        return error.error("This is a default item given to all players.", "It cannot be removed from your inventory.", msg);
+    }
+
+    _checkIfPlayerHasItem(playerName, gameName, itemName, msg, invItem => {
+        if (invItem) {
+            getFullPlayerInfo(playerName, gameName, msg, playerInfo => {
+                if (playerInfo.weapon === itemName && quantity >= invItem.quantity) {
+                    equipItem(playerName, gameName, "bare_fist", msg);
+                } else if (playerInfo.clothing === itemName && quantity >= invItem.quantity) {
+                    equipItem(playerName, gameName, "torn_clothing", msg);
+                }
+
+                let deleteAll = false;
+                if (quantity >= invItem.quantity) {
+                    quantity = invItem.quantity;
+                    deleteAll = true;
+                }
+
+                let db = new sqlite3.Database("dungeon.db", err => {
+                    if (err) {
+                        console.log(err.message);
+                        return;
+                    }
+                });
+
+                if (deleteAll) {
+                    db.run(
+                        `DELETE FROM player_items
+                        WHERE item_name = ?
+                        AND username = ?
+                        AND game_title = ?;`,
+                        [itemName, playerName, gameName],
+                        (err) => {
+                            if (err) {
+                                console.log(err.message);
+                            }
+                            msg.channel.send(`\`${itemName}\` has been completely removed from your inventory.`);
+                        }
+                    );
+                } else {
+                    db.run(
+                        `UPDATE player_items
+                        SET quantity = quantity - ?
+                        WHERE item_name = ?
+                        AND username = ?
+                        AND game_title = ?;`,
+                        [quantity, itemName, playerName, gameName],
+                        (err) => {
+                            msg.channel.send(`Removed \`${quantity}\` items.`);
+                        }
+                    );
+                }
+
+                db.close();
             });
         }
     });
@@ -345,7 +416,7 @@ function _checkIfPlayerHasItem(playerName, gameName, itemName, msg, callback) {
     });
 
     db.get(
-        `SELECT *
+        `SELECT item_name, quantity
         FROM player_items
         WHERE username = ?
         AND item_name = ?
@@ -357,7 +428,7 @@ function _checkIfPlayerHasItem(playerName, gameName, itemName, msg, callback) {
             }
 
             if (!row) {
-                error.error("Item not found in your inventory.", "Try checking your spelling.", msg);
+                error.error("Item not found in inventory.", "Try checking your spelling.", msg);
             }
 
             if (callback) callback(row);
@@ -445,7 +516,7 @@ function getPlayerItems(playerName, gameName, callback) {
             console.log(err.message);
         }
 
-        callback(rows);
+        if (callback) callback(rows);
     });
 
     db.close();
@@ -470,7 +541,7 @@ function getPlayerSpells(playerName, gameName, callback) {
             console.log(err.message);
         }
 
-        callback(rows);
+        if (callback) callback(rows);
     });
 
     db.close();
@@ -950,3 +1021,4 @@ exports.getFullPlayerInfo = getFullPlayerInfo;
 exports.getPlayerItems = getPlayerItems;
 exports.getPlayerSpells = getPlayerSpells;
 exports.equipItem = equipItem;
+exports.dropItem = dropItem;

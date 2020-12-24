@@ -31,6 +31,16 @@ function getName(rawInput) {
     return name.slice(0, -1).toLowerCase();
 }
 
+function parseDashedCommand(rawInput) {
+    let ogString = "";
+    rawInput.forEach(arg => {
+        ogString += arg + " ";
+    });
+
+    return ogString.slice(0, -1).toLowerCase().split(" -");
+}
+
 exports.removeReaction = removeReaction;
 exports.isHost = isHost;
 exports.getName = getName;
+exports.parseDashedCommand = parseDashedCommand;

@@ -1,5 +1,4 @@
-const error = require('../util/error'),
-    removeItem = require('../util/removeItem');
+const error = require('../util/error');
 
 /**
  * Corrects syntax to allow for easy addition to the player information object.
