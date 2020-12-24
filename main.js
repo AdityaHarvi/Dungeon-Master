@@ -9,7 +9,6 @@ const Discord = require("discord.js"),
     upload = require('./util/upload'),
     help = require('./displayInfo/help'),
     inv = require('./util/inventory'),
-    transfer = require('./util/transferItem'),
     journal = require('./util/journal'),
     attack = require('./combat/attack'),
     cast = require('./combat/cast'),
@@ -111,10 +110,7 @@ client.on('message', msg => {
                 error.error("What is the campaign name?", "`!play <Campaign Name>`", msg);
             break;
 
-        case "roll":
-            if (args[1] && isNaN(args[1])) return error.error("Incorrect arguments.", "`!roll <optional: dice size>` is the proper format. Defaults to D20 if no size is given.", msg);
-            display.diceRoll(args[1], activeGameObject.game_title, msg);
-            break;
+        // Inventory management commands.
         case "equip":
             if (!_errorChecksPass(activeGameObject, msg)) return;
             (args[1]) ?
@@ -122,9 +118,24 @@ client.on('message', msg => {
                 error.error("What is the item you want to equip?", "`!equip <item name>`", msg);
             break;
         case "drop":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
             (args[1]) ?
                 inv.drop(msg.author.username, msg.author.username, activeGameObject, args, msg) :
                 error.error("What is the item name?", "This command is a little funky. Don't forget the `-` before the name and quantity.\n`!drop -<item name> -<quantity: optional>`", msg);
+            break;
+        case "give":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            (args[1]) ?
+                inv.transfer(msg.author.username, activeGameObject, args, msg) :
+                error.error("What is the item name and who are you giving it to?", "`!give -<player name> -<item name> -<quantity: optional>`", msg);
+            break;
+
+        case "roll":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            if (args[1] && isNaN(args[1])) return error.error("Incorrect inputs.", "`!roll <optional: dice size>` is the proper format. Defaults to D20 if no size is given.", msg);
+            display.diceRoll(args[1], activeGameObject.game_title, msg);
+            break;
+        case "attack":
             break;
 
         default:

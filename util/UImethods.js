@@ -37,7 +37,7 @@ function parseDashedCommand(rawInput) {
         ogString += arg + " ";
     });
 
-    return ogString.slice(0, -1).toLowerCase().split(" -");
+    return ogString.slice(0, -1).split(" -");
 }
 
 exports.removeReaction = removeReaction;

@@ -61,15 +61,47 @@ function drop(playerName, authorName, gameObject, rawInput, msg) {
     }
 
     let parsedCommand = ui.parseDashedCommand(rawInput);
-    parsedCommand[1] = parsedCommand[1].replace(" ", "_");
+    parsedCommand[1] = parsedCommand[1].replace(" ", "_").toLowerCase();
 
     if (parsedCommand[2] && isNaN(parsedCommand[2])) {
-        return error.error("The quantity should be a numeric value.", "`!drop -<item name> -<quantity: optional>`", msg);
+        return error.error("The second input should be a numeric value.", "`!drop -<item name> -<quantity: optional>`", msg);
     }
 
-    db.dropItem(playerName, gameObject.game_title, parsedCommand[1], parsedCommand[2], msg);
+    db.dropItem(playerName, gameObject.game_title, parsedCommand[1], parsedCommand[2], msg, droppedAmount => {
+        msg.channel.send(`\`${playerName}\` dropped \`${droppedAmount}\` \`${parsedCommand[1]}\`.`);
+    });
+}
+
+/**
+ * Gives an item from 1 player to another.
+ * @param {string} playerName The player who will recieve the item.
+ * @param {string} itemName The name of the item.
+ * @param {string} msg The original command sent by the player.
+ */
+function transfer(playerName, gameObject, rawInput, msg) {
+    let testForDash = 0;
+    rawInput.forEach(arg => {
+        if (arg.charAt(0) === "-") {
+            testForDash++;
+        }
+    });
+    if (testForDash < 2) {
+        return error.error("Incorrect command format.", "This command is a little funky. Don't forget the `-` before the names and quantity.\n`!give -<player name> -<item name> -<quantity: optional>`", msg);
+    }
+
+    let parsedCommand = ui.parseDashedCommand(rawInput);
+    parsedCommand[2] = parsedCommand[2].replace(" ", "_");
+
+    if (parsedCommand[3] && isNaN(parsedCommand[3])) {
+        return error.error("The quantity should be a numeric value.", "`!give -<player name> -<item name> -<quantity: optional>`", msg);
+    }
+
+    db.transferItem(playerName, parsedCommand[1], gameObject, parsedCommand[2], parsedCommand[3], msg, givenAmount => {
+        msg.channel.send(`\`${parsedCommand[1]}\` was given \`${givenAmount}\` \`${parsedCommand[2]}\` by \`${playerName}\``);
+    });
 }
 
 exports.drop = drop;
 exports.removeItem = removeItem;
 exports.equip = equip;
+exports.transfer = transfer;
