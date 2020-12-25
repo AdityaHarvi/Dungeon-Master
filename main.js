@@ -12,7 +12,6 @@ const Discord = require("discord.js"),
     combat = require("./util/combat"),
     journal = require('./util/journal'),
     cast = require('./combat/cast'),
-    useItem = require('./combat/useItem'),
     adminModifyInventory = require('./admin/modifyInventory'),
     adminModifyStats = require('./admin/modifyStats'),
     adminRoll = require('./admin/rollForAll'),
@@ -145,9 +144,13 @@ client.on('message', msg => {
             if (!_errorChecksPass(activeGameObject, msg)) return;
             (args[1] && !isNaN(args[1]) && args[1] > 0) ?
                 combat.bleed(Number(args[1]), msg.author.username, activeGameObject.game_title, msg) :
-                error.error("Incorrect input", "The input should be a value for how much mana you want to regain.\n`!bleed <#>`", msg);
+                error.error("Incorrect input.", "The input should be a value for how much mana you want to regain.\n`!bleed <#>`", msg);
             break;
         case "use":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            (args[1]) ?
+                combat.use(args, msg.author.username, activeGameObject.game_title, msg) :
+                error.error("Incorrect input.", "`!use <item name>`\n**Word of caution:**\nDungeon Master will *not* error check your item usage. So if you are at max health and use another potion, it will *not* increase your health, but it *will* use up the potion.\n Use items carefully!", msg);
             break;
 
         default:

@@ -1,6 +1,7 @@
 const error = require("../util/error"),
     display = require("../displayInfo/displayInfo"),
     db = require("../databaseHandler/dbHandler"),
+    ui = require("./UImethods"),
     dice = require("../util/dice");
 
 /**
@@ -45,5 +46,16 @@ function bleed(bleedAmount, playerName, gameName, msg) {
     });
 }
 
+/**
+ * Consumes an item from the players inventory.
+ * @param {string} itemName The item to be consumed.
+ * @param {object} msg The object containing information about the message sent through discord.
+ */
+function use(rawInput, playerName, gameName, msg) {
+    let itemName = ui.getName(rawInput);
+    db.useItem(itemName, playerName, gameName, msg);
+}
+
 exports.melee = melee;
 exports.bleed = bleed;
+exports.use = use;

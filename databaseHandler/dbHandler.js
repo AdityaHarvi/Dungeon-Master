@@ -64,6 +64,8 @@ function createDB() {
             bonusSpell INTEGER,
             bonusHealing INTEGER,
             bonusLuck INTEGER,
+            bonusInventory INTEGER,
+            bonusMoney INTEGER,
             PRIMARY KEY (item_name)
         );`, (err) => {
             db.run(`INSERT OR IGNORE INTO items VALUES (
@@ -79,9 +81,11 @@ function createDB() {
                 :bonusArmor,
                 :bonusSpell,
                 :bonusHealing,
-                :bonusLuck
+                :bonusLuck,
+                :bonusInventory,
+                :bonusMoney
             );`,
-            ["bare_fist",1,"Just your bare fists.","https://i.imgur.com/trX6GKf.png",5,1,0,0,0,0,0,0,0]);
+            ["bare_fist",1,"Just your bare fists.","https://i.imgur.com/trX6GKf.png",5,1,0,0,0,0,0,0,0,0,0]);
 
             db.run(`INSERT OR IGNORE INTO items VALUES (
                 :item_name,
@@ -96,9 +100,11 @@ function createDB() {
                 :bonusArmor,
                 :bonusSpell,
                 :bonusHealing,
-                :bonusLuck
+                :bonusLuck,
+                :bonusInventory,
+                :bonusMoney
             );`,
-            ["torn_clothing",1,"The bare necessities.","https://imgur.com/9YvRj1P.png",0,0,0,0,0,0,0,0,0]);
+            ["torn_clothing",1,"The bare necessities.","https://imgur.com/9YvRj1P.png",0,0,0,0,0,0,0,0,0,0,0]);
         }
     );
 
@@ -177,9 +183,10 @@ function newItem(io) {
             :bonusArmor,
             :bonusSpell,
             :bonusHealing,
-            :bonusLuck
+            :bonusLuck,
+            :bonusInventory
         );`,
-        [io.name, io.equipable, io.info, io.image, io.damageDice, io.weapon, io.bonusHealth, io.bonusStrength, io.bonusMana, io.bonusArmor, io.bonusSpell, io.bonusHealing, io.bonusLuck]
+        [io.name, io.equipable, io.info, io.image, io.damageDice, io.weapon, io.bonusHealth, io.bonusStrength, io.bonusMana, io.bonusArmor, io.bonusSpell, io.bonusHealing, io.bonusLuck, io.bonusInventory]
     );
 
     db.close();
@@ -230,6 +237,84 @@ function bleedPlayer(healthDecrease, manaIncrease, playerName, gameName, msg, ca
     );
 
     db.close();
+}
+
+function useItem(itemName, playerName, gameName, msg) {
+    _checkIfPlayerHasItem(playerName, gameName, itemName, msg, itemInfo => {
+        getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+            itemInfo.quantity -= 1;
+            let deleteItem = (itemInfo.quantity <= 0) ? true : false;
+            getItemInfo(itemName, msg, fullItemInfo => {
+                if (fullItemInfo.bonusHealth + playerInfo.health > playerInfo.maxHealth) {
+                    fullItemInfo.bonusHealth = playerInfo.maxHealth - playerInfo.health;
+                }
+                if (fullItemInfo.bonusMana + playerInfo.mana > playerInfo.maxMana) {
+                    fullItemInfo.bonusMana = playerInfo.maxMana - playerInfo.mana;
+                }
+
+                let db = new sqlite3.Database("dungeon.db", err => {
+                    if (err) {
+                        console.log(err.message);
+                        return;
+                    }
+                });
+
+                db.run(
+                    `UPDATE player_items
+                    SET quantity = ?
+                    WHERE item_name = ?
+                    AND username = ?
+                    AND game_title = ?;`,
+                    [itemInfo.quantity, itemName, playerName, gameName]
+                );
+
+                if (deleteItem) {
+                    db.run(
+                        `DELETE FROM player_items
+                        WHERE item_name = ?
+                        AND username = ?
+                        AND game_title = ?;`,
+                        [itemName, playerName, gameName]
+                    );
+                }
+
+                db.run(
+                    `UPDATE player
+                    SET health = health + ?,
+                        mana = mana + ?,
+                        strength = strength + ?,
+                        armor = armor + ?,
+                        bonusSpell = bonusSpell + ?,
+                        bonusHealing = bonusHealing + ?,
+                        luck = luck + ?,
+                        money = money + ?,
+                        maxInventory = maxInventory + ?
+                    WHERE username = ?
+                    AND game_title = ?;`,
+                    [fullItemInfo.bonusHealth,
+                        fullItemInfo.bonusMana,
+                        fullItemInfo.bonusStrength,
+                        fullItemInfo.bonusArmor,
+                        fullItemInfo.bonusSpell,
+                        fullItemInfo.bonusHealing,
+                        fullItemInfo.bonusLuck,
+                        fullItemInfo.bonusMoney,
+                        fullItemInfo.bonusInventory,
+                        playerName,
+                        gameName],
+                    (err) => {
+                        if (err) {
+                            console.log(err.message);
+                        }
+
+                        msg.react("✅");
+                    }
+                );
+
+                db.close();
+            });
+        });
+    });
 }
 
 function equipItem(playerName, gameName, itemName, msg) {
@@ -1039,3 +1124,4 @@ exports.equipItem = equipItem;
 exports.dropItem = dropItem;
 exports.transferItem = transferItem;
 exports.bleedPlayer = bleedPlayer;
+exports.useItem = useItem;
