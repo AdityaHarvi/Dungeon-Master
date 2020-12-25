@@ -9,11 +9,10 @@ const Discord = require("discord.js"),
     upload = require('./util/upload'),
     help = require('./displayInfo/help'),
     inv = require('./util/inventory'),
+    combat = require("./util/combat"),
     journal = require('./util/journal'),
-    attack = require('./combat/attack'),
     cast = require('./combat/cast'),
     useItem = require('./combat/useItem'),
-    bleed = require('./combat/bleed'),
     adminModifyInventory = require('./admin/modifyInventory'),
     adminModifyStats = require('./admin/modifyStats'),
     adminRoll = require('./admin/rollForAll'),
@@ -130,12 +129,25 @@ client.on('message', msg => {
                 error.error("What is the item name and who are you giving it to?", "`!give -<player name> -<item name> -<quantity: optional>`", msg);
             break;
 
+        // Combat commands.
         case "roll":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (args[1] && isNaN(args[1])) return error.error("Incorrect inputs.", "`!roll <optional: dice size>` is the proper format. Defaults to D20 if no size is given.", msg);
-            display.diceRoll(args[1], activeGameObject.game_title, msg);
+            if (args[1] && isNaN(args[1]) && args[1] > 0) return error.error("Incorrect inputs.", "`!roll <optional: dice size>` is the proper format. Defaults to D20 if no size is given.", msg);
+            display.diceRoll(Number(args[1]), activeGameObject.game_title, msg);
             break;
         case "attack":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            (args[1]) ?
+                combat.melee(args[1], msg.author.username, activeGameObject.game_title, msg) :
+                error.error("Who are you attacking?", "Note that names of players or enemies is case sensitive.\n`!attack <enemy/player name>`", msg);
+            break;
+        case "bleed":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            (args[1] && !isNaN(args[1]) && args[1] > 0) ?
+                combat.bleed(Number(args[1]), msg.author.username, activeGameObject.game_title, msg) :
+                error.error("Incorrect input", "The input should be a value for how much mana you want to regain.\n`!bleed <#>`", msg);
+            break;
+        case "use":
             break;
 
         default:

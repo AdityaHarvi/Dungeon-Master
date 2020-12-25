@@ -83,35 +83,18 @@ function displaySpellCast(playerInfo, spellInfo, extraInfo, msg) {
     return msg.channel.send({embed: spellCastEmbed});
 }
 
-function getAttackFields(playerInfo, extraInfo) {
-    let fields = [];
 
-    fields[0] = {name: `Total Damage Dealt: \`${extraInfo.damage}\``, value: `${(playerInfo.firstRoll) ? `D${playerInfo.diceSize} (${playerInfo.firstRoll}) + ` : ''}D${playerInfo.diceSize} (${extraInfo.roll}) + ${playerInfo.strength} ${(extraInfo.specialAbility) ? '+ 1 ' : '' }`, inline: true};
-    if (playerInfo.specialAbility2) {
-        fields[1] = {name: `\u200b`, value: `Ability Activated: \`${playerInfo.specialAbility2}\``, inline: true};
-    }
+function attackInfo(playerInfo, itemInfo, damageRoll, msg) {
+    let attackEmbed = new Discord.MessageEmbed()
+        .setColor("0x995e06")
+        .setTitle(`${playerInfo.username} overcomes the enemy's armor!`)
+        .setThumbnail(itemInfo.image)
+        .addFields(
+            {name: `Total Damage Dealt with ${itemInfo.item_name}: \`${damageRoll}\``, value: `D${itemInfo.damage_dice} (${damageRoll})`}
+        );
 
-    return fields;
+    msg.channel.send(attackEmbed);
 }
-
-function displayAttactInfo(playerInfo, itemInfo, extraInfo, msg) {
-    const attackEmbed = {
-        color: 0x995e06,
-        title: `${playerInfo.name} attacks with ${itemInfo.name}`,
-        thumbnail: {
-            url: itemInfo.image
-        },
-        fields: getAttackFields(playerInfo, extraInfo)
-    };
-
-    if (extraInfo.specialAbility) {
-        attackEmbed.footer = { text: `Passive ability "${extraInfo.specialAbility}" has been activated.` };
-    }
-
-    return msg.channel.send({embed: attackEmbed});
-}
-
-
 
 function _getPlayerInfoEmbed(playerInfo, weaponInfo, clothingInfo) {
     let bonusArmor = "\u200b";
@@ -323,34 +306,34 @@ function _getClassFields(className) {
             classObject.name = "Juggernaut";
             classObject.url = "https://i.imgur.com/ChxDqEE.png";
             fields[0] = {name: "|------- ❤️ -------|", value: `|‾‾‾‾‾‾( 40 )‾‾‾‾‾‾|`, inline: true};
-            fields[1] = {name: "|------- 💪 -------|", value: `|‾‾‾‾‾‾‾( 0 )‾‾‾‾‾‾‾|`, inline: true};
+            fields[1] = {name: "|------- 💪 -------|", value: `|‾‾‾‾‾‾‾( 5 )‾‾‾‾‾‾‾|`, inline: true};
             fields[2] = {name: "|------- 🧪 -------|", value: `|‾‾‾‾‾‾‾( 0 )‾‾‾‾‾‾‾|`, inline: true};
-            fields[3] = {name: "Bonus: +3 Armor", value: "When you get hit, you will absorb 3 points worth of damage by default. This value can be increased by equiping armor found in the world."};
+            fields[3] = {name: "Bonus: +3 Armor", value: "Start off with three extra points into your Armor Class. This value can be increased by equiping armor found in the world."};
             fields[4] = {name: "\u200b", value: "This character can endure massive damage. Shrug off even the largest of hits."};
             break;
         case "paladin":
             classObject.name = "Paladin";
             classObject.url = "https://i.imgur.com/BLhcLTS.gif";
             fields[0] = {name: "|------- ❤️ -------|", value: `|‾‾‾‾‾‾( 25 )‾‾‾‾‾‾|`, inline: true};
-            fields[1] = {name: "|------- 💪 -------|", value: `|‾‾‾‾‾‾‾( 3 )‾‾‾‾‾‾‾|`, inline: true};
+            fields[1] = {name: "|------- 💪 -------|", value: `|‾‾‾‾‾‾‾( 8 )‾‾‾‾‾‾‾|`, inline: true};
             fields[2] = {name: "|------- 🧪 -------|", value: `|‾‾‾‾‾‾‾( 5 )‾‾‾‾‾‾‾|`, inline: true};
-            fields[3] = {name: "Bonus: +3 Melee Damage & +1 Healing", value: "Deal extra damage when you do a melee attack. Improve your healing capabilities whenever you cast a spell or use a potion."};
+            fields[3] = {name: "Bonus: +3 Strength & +1 Healing", value: "Start off with 3 extra strength and improve your healing capabilities whenever you cast a spell or use a potion."};
             fields[4] = {name: "\u200b", value: "Face your foes head on and survive to live another day. Your healing and damage far surpass any enemy you would encouter."};
             break;
         case "assassin":
             classObject.name = "Assassin";
             classObject.url = "https://i.imgur.com/6UANXPh.png";
             fields[0] = {name: "|------- ❤️ -------|", value: `|‾‾‾‾‾‾( 18 )‾‾‾‾‾‾|`, inline: true};
-            fields[1] = {name: "|------- 💪 -------|", value: `|‾‾‾‾‾‾‾( 5 )‾‾‾‾‾‾‾|`, inline: true};
+            fields[1] = {name: "|------- 💪 -------|", value: `|‾‾‾‾‾‾‾( 10 )‾‾‾‾‾‾‾|`, inline: true};
             fields[2] = {name: "|------- 🧪 -------|", value: `|‾‾‾‾‾‾‾( 0 )‾‾‾‾‾‾‾|`, inline: true};
-            fields[3] = {name: "Bonus: +5 Melee Damage", value: "Deal 5 bonus damage when using your melee weapon!"};
+            fields[3] = {name: "Bonus: +5 Strength", value: "Starts off with 5 extra strength! This character starts with the highest strength value and it be increased by equiping armor and weapons found throughout the world."};
             fields[4] = {name: "\u200b", value: "Use the shadows to your advantage. You know the enemies weakpoints and can perform critical hits with ease. Careful not to fight directly through, you cannot sustain a fight for long."};
             break;
         case "wizard":
             classObject.name = "Wizard";
             classObject.url = "https://i.imgur.com/d5VfPOS.png";
             fields[0] = {name: "|------- ❤️ -------|", value: `|‾‾‾‾‾‾( 15 )‾‾‾‾‾‾|`, inline: true};
-            fields[1] = {name: "|------- 💪 -------|", value: `|‾‾‾‾‾‾‾( 0 )‾‾‾‾‾‾‾|`, inline: true};
+            fields[1] = {name: "|------- 💪 -------|", value: `|‾‾‾‾‾‾‾( 5 )‾‾‾‾‾‾‾|`, inline: true};
             fields[2] = {name: "|------- 🧪 -------|", value: `|‾‾‾‾‾‾‾( 20 )‾‾‾‾‾‾‾|`, inline: true};
             fields[3] = {name: "Bonus: +3 Spell Damage", value: "Deal 3 bonus damage when using a spell!"};
             fields[4] = {name: "\u200b", value: "As a master of the dark arts, you control the elements. Destroy your enemies with overwhelming power. Fight from the rear ranks and use your range to your advantage, a wizard cannot survive for long while they are alone."};
@@ -359,7 +342,7 @@ function _getClassFields(className) {
             classObject.name = "Cleric";
             classObject.url = "https://i.imgur.com/AJZas5t.png";
             fields[0] = {name: "|------- ❤️ -------|", value: `|‾‾‾‾‾‾( 17 )‾‾‾‾‾‾|`, inline: true};
-            fields[1] = {name: "|------- 💪 -------|", value: `|‾‾‾‾‾‾‾( 0 )‾‾‾‾‾‾‾|`, inline: true};
+            fields[1] = {name: "|------- 💪 -------|", value: `|‾‾‾‾‾‾‾( 5 )‾‾‾‾‾‾‾|`, inline: true};
             fields[2] = {name: "|------- 🧪 -------|", value: `|‾‾‾‾‾‾‾( 10 )‾‾‾‾‾‾‾|`, inline: true};
             fields[3] = {name: "Bonus: +3 Healing", value: "Heal your allies with a bonus of +3. Also applies to potions when self healing."};
             fields[4] = {name: "\u200b", value: "Use the power of the divine to heal your allies and to vanquish your foes. With you on their team, your friends can never die."};
@@ -368,16 +351,16 @@ function _getClassFields(className) {
             classObject.name = "Archmage";
             classObject.url = "https://i.imgur.com/10DmLXk.png";
             fields[0] = {name: "|------- ❤️ -------|", value: `|‾‾‾‾‾‾( 20 )‾‾‾‾‾‾|`, inline: true};
-            fields[1] = {name: "|------- 💪 -------|", value: `|‾‾‾‾‾‾‾( 2 )‾‾‾‾‾‾‾|`, inline: true};
+            fields[1] = {name: "|------- 💪 -------|", value: `|‾‾‾‾‾‾‾( 7 )‾‾‾‾‾‾‾|`, inline: true};
             fields[2] = {name: "|------- 🧪 -------|", value: `|‾‾‾‾‾‾‾( 10 )‾‾‾‾‾‾‾|`, inline: true};
-            fields[3] = {name: "Bonus: +2 Melee Damage & +1 Spell Damage", value: "Deal 3 bonus damage when attacking with a melee weapon and +1 bonus damage when using a spell!"};
+            fields[3] = {name: "Bonus: +2 Strength & +1 Spell Damage", value: "Start off with 2 bonus strength and +1 bonus damage when using a spell!"};
             fields[4] = {name: "\u200b", value: "You know the sword as well as the flames. Combat your foes with ranged and melee weapons."};
             break;
         case "bard":
             classObject.name = "Bard";
             classObject.url = "https://i.imgur.com/znRYmxK.png";
             fields[0] = {name: "|------- ❤️ -------|", value: `|‾‾‾‾‾‾( 23 )‾‾‾‾‾‾|`, inline: true};
-            fields[1] = {name: "|------- 💪 -------|", value: `|‾‾‾‾‾‾‾( 0 )‾‾‾‾‾‾‾|`, inline: true};
+            fields[1] = {name: "|------- 💪 -------|", value: `|‾‾‾‾‾‾‾( 5 )‾‾‾‾‾‾‾|`, inline: true};
             fields[2] = {name: "|------- 🧪 -------|", value: `|‾‾‾‾‾‾‾( 4 )‾‾‾‾‾‾‾|`, inline: true};
             fields[3] = {name: "Bonus: +3 Luck", value: "Increase your rolls by 3 when not in combat."};
             fields[4] = {name: "\u200b", value: "People think you\'re nothing but a drunk, but they don\'t realize your secrets. Conquer your foes with your charm... and maybe a hidden knife up your sleeve, who knows what you\'re hiding"};
@@ -479,3 +462,4 @@ exports.spellInfo = spellInfo;
 exports.classMenuUi = classMenuUi;
 exports.playerInfo = playerInfo;
 exports.diceRoll = diceRoll;
+exports.attackInfo = attackInfo;

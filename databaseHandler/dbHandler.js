@@ -55,6 +55,7 @@ function createDB() {
             equipable INTEGER,
             description TEXT,
             image TEXT,
+            damage_dice INTEGER,
             weapon INTEGER,
             bonusHealth INTEGER,
             bonusStrength INTEGER,
@@ -70,6 +71,7 @@ function createDB() {
                 :equipable,
                 :description,
                 :image,
+                :damage_dice,
                 :weapon,
                 :bonusHealth,
                 :bonusStrength,
@@ -79,13 +81,14 @@ function createDB() {
                 :bonusHealing,
                 :bonusLuck
             );`,
-            ["bare_fist",1,"Just your bare fists.","https://i.imgur.com/trX6GKf.png",1,0,0,0,0,0,0,0]);
+            ["bare_fist",1,"Just your bare fists.","https://i.imgur.com/trX6GKf.png",5,1,0,0,0,0,0,0,0]);
 
             db.run(`INSERT OR IGNORE INTO items VALUES (
                 :item_name,
                 :equipable,
                 :description,
                 :image,
+                :damage_dice,
                 :weapon,
                 :bonusHealth,
                 :bonusStrength,
@@ -95,7 +98,7 @@ function createDB() {
                 :bonusHealing,
                 :bonusLuck
             );`,
-            ["torn_clothing",1,"The bare necessities.","https://imgur.com/9YvRj1P.png",0,0,0,0,0,0,0,0]);
+            ["torn_clothing",1,"The bare necessities.","https://imgur.com/9YvRj1P.png",0,0,0,0,0,0,0,0,0]);
         }
     );
 
@@ -166,6 +169,7 @@ function newItem(io) {
             :equipable,
             :description,
             :image,
+            :damage_dice,
             :weapon,
             :bonusHealth,
             :bonusStrength,
@@ -175,7 +179,7 @@ function newItem(io) {
             :bonusHealing,
             :bonusLuck
         );`,
-        [io.name, io.equipable, io.info, io.image, io.weapon, io.bonusHealth, io.bonusStrength, io.bonusMana, io.bonusArmor, io.bonusSpell, io.bonusHealing, io.bonusLuck]
+        [io.name, io.equipable, io.info, io.image, io.damageDice, io.weapon, io.bonusHealth, io.bonusStrength, io.bonusMana, io.bonusArmor, io.bonusSpell, io.bonusHealing, io.bonusLuck]
     );
 
     db.close();
@@ -200,6 +204,29 @@ function newSpell(so) {
             :bonus_roll
         );`,
         [so.name, so.info, so.image, so.type, so.mana, so.damage, so.bonus_roll]
+    );
+
+    db.close();
+}
+
+function bleedPlayer(healthDecrease, manaIncrease, playerName, gameName, msg, callback) {
+    let db = new sqlite3.Database("dungeon.db", err => {
+        if (err) {
+            console.log(err.message);
+            return;
+        }
+    });
+
+    db.run(
+        `UPDATE player
+        SET health = health - ?,
+            mana = mana + ?
+        WHERE username = ?
+        AND game_title = ?;`,
+        [healthDecrease, manaIncrease, playerName, gameName],
+        (err) => {
+            if (callback) callback();
+        }
     );
 
     db.close();
@@ -1011,3 +1038,4 @@ exports.getPlayerSpells = getPlayerSpells;
 exports.equipItem = equipItem;
 exports.dropItem = dropItem;
 exports.transferItem = transferItem;
+exports.bleedPlayer = bleedPlayer;

@@ -13,21 +13,19 @@ function _classSelection(className, playerObject) {
             playerObject.class = "Juggernaut";
             playerObject.image = "https://i.imgur.com/ChxDqEE.png"
             playerObject.health = 40;
-            playerObject.strength = 0;
             playerObject.mana = 0;
-            playerObject.armor = 3;
+            playerObject.armor = 13;
             break;
         case "assassin":
             playerObject.class = "Assassin";
             playerObject.image = "https://i.imgur.com/6UANXPh.png";
             playerObject.health = 18;
-            playerObject.strength = 5;
+            playerObject.strength = 10;
             playerObject.mana = 0;
             break;
         case "wizard":
             playerObject.class = 'Wizard';
             playerObject.health = 15;
-            playerObject.strength = 0;
             playerObject.mana = 20;
             playerObject.bonusSpell = 3;
             break;
@@ -35,7 +33,7 @@ function _classSelection(className, playerObject) {
             playerObject.class = "Paladin";
             playerObject.image = "https://i.imgur.com/BLhcLTS.gif";
             playerObject.health = 25;
-            playerObject.strength = 3;
+            playerObject.strength = 8;
             playerObject.mana = 5;
             playerObject.bonusHealing = 1;
             break;
@@ -43,7 +41,6 @@ function _classSelection(className, playerObject) {
             playerObject.class = "Cleric";
             playerObject.image = "https://i.imgur.com/AJZas5t.png";
             playerObject.health = 17;
-            playerObject.strength = 0;
             playerObject.mana = 10;
             playerObject.bonusHealing = 3;
             break;
@@ -51,7 +48,7 @@ function _classSelection(className, playerObject) {
             playerObject.class = "Archmage";
             playerObject.image = "https://i.imgur.com/10DmLXk.png";
             playerObject.health = 20;
-            playerObject.strength = 2;
+            playerObject.strength = 7;
             playerObject.mana = 10;
             playerObject.bonusSpell = 1;
             break;
@@ -59,7 +56,6 @@ function _classSelection(className, playerObject) {
             playerObject.class = "Bard";
             playerObject.image = "https://i.imgur.com/znRYmxK.png";
             playerObject.health = 23;
-            playerObject.strength = 0;
             playerObject.mana = 4;
             playerObject.luck = 3;
             break;
@@ -82,13 +78,13 @@ function _getMoreInfoClassSelectionEmbed(playerName) {
         .setAuthor("Dungeon Master", "https://i.imgur.com/MivKiKL.png")
         .setDescription("Click ℹ️ to toggle for more info.")
         .addFields(
-            {name: "🛡️ Juggernaut", value: "❤️40 | 💪0 | 🧪0", inline: true},
-            {name: "⚔️ Assassin", value: "❤️18 | 💪5 | 🧪0", inline: true},
-            {name: "🪄 Wizard", value: "❤️15 | 💪0 | 🧪20", inline: true},
-            {name: "☀️ Paladin", value: "❤️25 | 💪3 | 🧪5", inline: true},
-            {name: "⚕️ Cleric", value: "❤️17 | 💪0 | 🧪10", inline: true},
-            {name: "🧙 Archmage", value: "❤️20 | 💪2 | 🧪10", inline: true},
-            {name: "🎸 Bard", value: "❤️23 | 💪0 | 🧪4", inline: true}
+            {name: "🛡️ Juggernaut", value: "❤️40 | 💪5 | 🧪0", inline: true},
+            {name: "⚔️ Assassin", value: "❤️18 | 💪10 | 🧪0", inline: true},
+            {name: "🪄 Wizard", value: "❤️15 | 💪5 | 🧪20", inline: true},
+            {name: "☀️ Paladin", value: "❤️25 | 💪8 | 🧪5", inline: true},
+            {name: "⚕️ Cleric", value: "❤️17 | 💪5 | 🧪10", inline: true},
+            {name: "🧙 Archmage", value: "❤️20 | 💪7 | 🧪10", inline: true},
+            {name: "🎸 Bard", value: "❤️23 | 💪5 | 🧪4", inline: true}
         )
         .setFooter("'!class' if you want to read more!")
 }
@@ -105,11 +101,11 @@ function _getClassSelectionEmbed(playerName) {
         .setDescription("Click ℹ️ to toggle for more info.")
         .addFields(
             {name: "🛡️ Juggernaut", value: "+3 Armor", inline: true},
-            {name: "⚔️ Assassin", value: "+5 Melee Damage", inline: true},
+            {name: "⚔️ Assassin", value: "+5 Strength", inline: true},
             {name: "🪄 Wizard", value: "+3 Spell Damage", inline: true},
-            {name: "☀️ Paladin", value: "+3 Melee Damage\n+1 Healing", inline: true},
+            {name: "☀️ Paladin", value: "+3 Strength\n+1 Healing", inline: true},
             {name: "⚕️ Cleric", value: "+3 Healing", inline: true},
-            {name: "🧙 Archmage", value: "+2 Melee Damage\n+1 Spell Damage", inline: true},
+            {name: "🧙 Archmage", value: "+2 Strength\n+1 Spell Damage", inline: true},
             {name: "🎸 Bard", value: "+3 Luck", inline: true}
         )
         .setFooter("'!class' if you want to read more!")
@@ -161,11 +157,12 @@ function generateClassSelectionUI(gameObject, playerName, msg) {
     playerObject.clothing = "torn_clothing";
     playerObject.journal = [];
     playerObject.maxInventory = 15;
-    playerObject.armor = 0;
+    playerObject.armor = 10;
     playerObject.bonusSpell = 0;
     playerObject.bonusHealing = 0;
     playerObject.luck = 0;
     playerObject.money = 0;
+    playerObject.strength = 5;
 
     // Send the message and setup emotes.
     msg.guild.channels.cache.get(gameObject.playerChannel).send(selectionEmbed).then(async classEmbed => {

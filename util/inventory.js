@@ -63,8 +63,8 @@ function drop(playerName, authorName, gameObject, rawInput, msg) {
     let parsedCommand = ui.parseDashedCommand(rawInput);
     parsedCommand[1] = parsedCommand[1].replace(" ", "_").toLowerCase();
 
-    if (parsedCommand[2] && isNaN(parsedCommand[2])) {
-        return error.error("The second input should be a numeric value.", "`!drop -<item name> -<quantity: optional>`", msg);
+    if (parsedCommand[2] && isNaN(parsedCommand[2]) && Number(parsedCommand[2]) > 0) {
+        return error.error("The second input should be a positive numeric value.", "`!drop -<item name> -<quantity: optional>`", msg);
     }
 
     db.dropItem(playerName, gameObject.game_title, parsedCommand[1], parsedCommand[2], msg, droppedAmount => {
@@ -92,8 +92,8 @@ function transfer(playerName, gameObject, rawInput, msg) {
     let parsedCommand = ui.parseDashedCommand(rawInput);
     parsedCommand[2] = parsedCommand[2].replace(" ", "_");
 
-    if (parsedCommand[3] && isNaN(parsedCommand[3])) {
-        return error.error("The quantity should be a numeric value.", "`!give -<player name> -<item name> -<quantity: optional>`", msg);
+    if (parsedCommand[3] && isNaN(parsedCommand[3]) && Number(parsedCommand[3]) > 0) {
+        return error.error("The quantity should be a positive numeric value.", "`!give -<player name> -<item name> -<quantity: optional>`", msg);
     }
 
     db.transferItem(playerName, parsedCommand[1], gameObject, parsedCommand[2], parsedCommand[3], msg, givenAmount => {
