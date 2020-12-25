@@ -6,17 +6,15 @@ const Discord = require("discord.js"),
     error = require('./util/error'),
     gameHandler = require('./startup/gameStatusHandler'),
     display = require('./displayInfo/displayInfo'),
-    upload = require('./util/upload'),
     help = require('./displayInfo/help'),
     inv = require('./util/inventory'),
     combat = require("./util/combat"),
     journal = require('./util/journal'),
-    cast = require('./combat/cast'),
     adminModifyInventory = require('./admin/modifyInventory'),
     adminModifyStats = require('./admin/modifyStats'),
     adminRoll = require('./admin/rollForAll'),
     ally = require('./admin/ally'),
-    purge = require('./admin/purge');
+    purge = require('./util/purge');
 
 var activeGameObject;
 
@@ -127,6 +125,12 @@ client.on('message', msg => {
                 inv.transfer(msg.author.username, activeGameObject, args, msg) :
                 error.error("What is the item name and who are you giving it to?", "`!give -<player name> -<item name> -<quantity: optional>`", msg);
             break;
+        case "upload":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            (args[1]) ?
+                inv.upload(args[1], msg.author.username, activeGameObject.game_title, msg) :
+                error.error("Incorrect inputs.", "`!upload <imgur URL>`\nThis command only accepts imgur links. Please note that the link should end with a `.png` or `.gif` extension.", msg);
+            break;
 
         // Combat commands.
         case "roll":
@@ -151,6 +155,16 @@ client.on('message', msg => {
             (args[1]) ?
                 combat.use(args, msg.author.username, activeGameObject.game_title, msg) :
                 error.error("Incorrect input.", "`!use <item name>`\n**Word of caution:**\nDungeon Master will *not* error check your item usage. So if you are at max health and use another potion, it will *not* increase your health, but it *will* use up the potion.\n Use items carefully!", msg);
+            break;
+        case "cast":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            break;
+
+        // Misc commands.
+        case "purge":
+            (args[1] && !isNaN(args[1])) ?
+                purge.purge(args[1], msg.author.username, activeGameObject.host, msg) :
+                error.error("Your input needs to be a number.", "`!purge <#>`", msg);
             break;
 
         default:

@@ -221,6 +221,30 @@ function newSpell(so) {
     db.close();
 }
 
+function uploadImage(link, playerName, gameName, msg) {
+    getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+        let db = new sqlite3.Database("dungeon.db", err => {
+            if (err) {
+                console.log(err.message);
+                return;
+            }
+        });
+
+        db.run(
+            `UPDATE player
+            SET image = ?
+            WHERE username = ?
+            AND game_title = ?;`,
+            [link, playerName, gameName],
+            (err) => {
+                msg.react("✅");
+            }
+        );
+
+        db.close();
+    });
+}
+
 function bleedPlayer(healthDecrease, manaIncrease, playerName, gameName, msg, callback) {
     let db = new sqlite3.Database("dungeon.db", err => {
         if (err) {
@@ -675,13 +699,11 @@ function getSpellInfo(spellName, msg, callback) {
         (err, row) => {
             if (err) {
                 console.log(err.message);
-            }
-
-            if (!row) {
+            } else if (callback && row) {
+                callback(row);
+            } else {
                 error.error("This spell does not exist.", `The host will need to \`!make spell ${spellName}\` to create the spell.`, msg);
-                if (callback) callback(row);
             }
-            if (callback) callback(row);
         }
     );
 
@@ -772,10 +794,6 @@ function giveItem(playerName, gameObject, itemName, quantity, msg, callback) {
                     }
                 );
 
-                // FIXME:
-                // msg.guild.channels.cache.get(gameObject.hostChannel).send(`\`${quantity}\` \`${itemName}\` successfully given to \`${playerName}\``);
-                // msg.guild.channels.cache.get(gameObject.playerChannel).send(`\`${playerName}\` has just received \`${quantity}\` new item(s)! \`!info\` to check it out.`);
-
                 db.close();
             }
         });
@@ -787,8 +805,8 @@ function giveSpell(playerName, gameObject, spellName, msg) {
         return error.error(`Could not find \`${playerName}\` in this game.`, "Player names are case sensitive unfortunately! Check if it looks right.", msg);
     }
 
-    getSpellInfo(spellName, msg, spellInfo => {
-        if (spellInfo) {
+    getBaiscPlayerInfo(playerName, gameObject.game_title, msg, playerInfo => {
+        getSpellInfo(spellName, msg, spellInfo => {
             let db = new sqlite3.Database("dungeon.db", err => {
                 if (err) {
                     console.log(err.message);
@@ -808,12 +826,12 @@ function giveSpell(playerName, gameObject, spellName, msg) {
                     msg.guild.channels.cache.get(gameObject.hostChannel).send(`\`${playerName}\` already has this spell.`);
                 } else {
                     msg.guild.channels.cache.get(gameObject.hostChannel).send(`\`${spellName}\` successfully given to \`${playerName}\``);
-                    msg.guild.channels.cache.get(gameObject.playerChannel).send(`\`${playerName}\` has just received a spell! \`!info\` to check it out.`);
+                    if (!playerInfo.isBot) msg.guild.channels.cache.get(gameObject.playerChannel).send(`\`${playerName}\` has just received a spell! \`!info\` to check it out.`);
                 }
             });
 
             db.close();
-        }
+        });
     });
 }
 
@@ -1134,3 +1152,4 @@ exports.dropItem = dropItem;
 exports.transferItem = transferItem;
 exports.bleedPlayer = bleedPlayer;
 exports.useItem = useItem;
+exports.uploadImage =uploadImage;

@@ -1,13 +1,15 @@
-const error = require('../util/error');
+const error = require("./error"),
+    ui = require("./UImethods");
 
 /**
  * Deletes a certain number of messages. Useful for cleaning up the chat.
  * @param {number} size The # of messages to be deleted.
  * @param {object} msg The object containing information about the message sent through discord.
  */
-async function purge(size, msg) {
-    if (isNaN(size)) return error.error('Your input needs to be a number. `!purge <#>`', msg);
-    if (!msg.member._roles.includes('727195200681934969')) return error.error('You need to be hosting the game to run this command.', msg);
+async function purge(size, playerName, gameHost, msg) {
+    if (!gameHost || !ui.isHost(gameHost, playerName)) {
+        return error.error("You need to be hosting a game to be able to run this command.", "Create a game with `!create <campaign name>` to start one.", msg);
+    }
 
     msg.delete();
 

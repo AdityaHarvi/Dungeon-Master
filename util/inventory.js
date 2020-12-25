@@ -90,7 +90,7 @@ function transfer(playerName, gameObject, rawInput, msg) {
     }
 
     let parsedCommand = ui.parseDashedCommand(rawInput);
-    parsedCommand[2] = parsedCommand[2].replace(" ", "_");
+    parsedCommand[2] = parsedCommand[2].replace(" ", "_").toLowerCase();
 
     if (parsedCommand[3] && isNaN(parsedCommand[3]) && Number(parsedCommand[3]) > 0) {
         return error.error("The quantity should be a positive numeric value.", "`!give -<player name> -<item name> -<quantity: optional>`", msg);
@@ -101,7 +101,16 @@ function transfer(playerName, gameObject, rawInput, msg) {
     });
 }
 
+function upload(imageURL, playerName, gameName, msg) {
+    let pattern = /^https:\/\/(i.)?imgur.com\/\w{7}.(png|gif)$/;
+
+    if (!pattern.test(imageURL)) return error.error("This command only accepts imgur links. Please note that the link should end with a `.png` or `.gif` extension.", null, msg);
+
+    db.uploadImage(imageURL, playerName, gameName, msg);
+}
+
 exports.drop = drop;
 exports.removeItem = removeItem;
 exports.equip = equip;
 exports.transfer = transfer;
+exports.upload = upload;
