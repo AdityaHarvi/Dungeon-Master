@@ -53,6 +53,7 @@ function createDB() {
         `CREATE TABLE IF NOT EXISTS items (
             item_name TEXT NOT NULL,
             equipable INTEGER,
+            consumable INTEGER,
             description TEXT,
             image TEXT,
             damage_dice INTEGER,
@@ -71,6 +72,7 @@ function createDB() {
             db.run(`INSERT OR IGNORE INTO items VALUES (
                 :item_name,
                 :equipable,
+                :consumable,
                 :description,
                 :image,
                 :damage_dice,
@@ -85,11 +87,12 @@ function createDB() {
                 :bonusInventory,
                 :bonusMoney
             );`,
-            ["bare_fist",1,"Just your bare fists.","https://i.imgur.com/trX6GKf.png",5,1,0,0,0,0,0,0,0,0,0]);
+            ["bare_fist",1,0,"Just your bare fists.","https://i.imgur.com/trX6GKf.png",5,1,0,0,0,0,0,0,0,0,0]);
 
             db.run(`INSERT OR IGNORE INTO items VALUES (
                 :item_name,
                 :equipable,
+                :consumable,
                 :description,
                 :image,
                 :damage_dice,
@@ -104,7 +107,7 @@ function createDB() {
                 :bonusInventory,
                 :bonusMoney
             );`,
-            ["torn_clothing",1,"The bare necessities.","https://imgur.com/9YvRj1P.png",0,0,0,0,0,0,0,0,0,0,0]);
+            ["torn_clothing",1,0,"The bare necessities.","https://imgur.com/9YvRj1P.png",0,0,0,0,0,0,0,0,0,0,0]);
         }
     );
 
@@ -173,6 +176,7 @@ function newItem(io) {
         `INSERT INTO items VALUES (
             :item_name,
             :equipable,
+            :consumable,
             :description,
             :image,
             :damage_dice,
@@ -184,9 +188,10 @@ function newItem(io) {
             :bonusSpell,
             :bonusHealing,
             :bonusLuck,
-            :bonusInventory
+            :bonusInventory,
+            :bonusMoney
         );`,
-        [io.name, io.equipable, io.info, io.image, io.damageDice, io.weapon, io.bonusHealth, io.bonusStrength, io.bonusMana, io.bonusArmor, io.bonusSpell, io.bonusHealing, io.bonusLuck, io.bonusInventory]
+        [io.name, io.equipable, io.consumable, io.info, io.image, io.damageDice, io.weapon, io.bonusHealth, io.bonusStrength, io.bonusMana, io.bonusArmor, io.bonusSpell, io.bonusHealing, io.bonusLuck, io.bonusInventory, io.bonusMoney]
     );
 
     db.close();
@@ -245,6 +250,10 @@ function useItem(itemName, playerName, gameName, msg) {
             itemInfo.quantity -= 1;
             let deleteItem = (itemInfo.quantity <= 0) ? true : false;
             getItemInfo(itemName, msg, fullItemInfo => {
+                if (!fullItemInfo.consumable) {
+                    return error.error("This item cannot be consumed.", null, msg);
+                }
+
                 if (fullItemInfo.bonusHealth + playerInfo.health > playerInfo.maxHealth) {
                     fullItemInfo.bonusHealth = playerInfo.maxHealth - playerInfo.health;
                 }
