@@ -1,49 +1,35 @@
-const items = require('../inventories/items'),
-    spells = require('../inventories/spells'),
-    Discord = require("discord.js"),
+const Discord = require("discord.js"),
     dice = require("../util/dice"),
     ui = require("../util/UImethods"),
     db = require("../databaseHandler/dbHandler"),
     error = require('../util/error');
 
 /**
- * Populates the fields for the jounal embed.
- * @param {object} playerInfo The player object.
- */
-function getJournalFields(playerInfo) {
-    let fields = [];
-
-    // Base message that the player will see if they don't have any notes.
-    if (playerInfo.journal.length === 0) {
-        return fields[0] = {name: 'The pages got wet from the shipwreck and you can\'t make out any of the notes. At least future additions will be easier to read.', value: 'Do `!add-note <note title> <message>` to start writing in your journal!'};
-    }
-
-    for (var i = 0; i < playerInfo.journal.length; i++) {
-        fields[i] = {name: playerInfo.journal[i].name, value: playerInfo.journal[i].message};
-    }
-
-    return fields;
-}
-
-/**
  * Displays the journal as a private message to the player.
  * @param {string} playerName Name of the player.
  * @param {object} msg The object containing information about the message sent through discord.
  */
-function displayNote(playerName, msg) {
-    // Read player information.
-    getInfo.getPlayerInfo(playerName, msg, (playerInfo) => {
-        const journalEntryEmbed = {
-            color: 0x32a8a4,
-            title: `${playerInfo.name}'s Journal (${playerInfo.journal.length}/25)`,
-            thumbnail: {
-                url: 'https://i.imgur.com/XYraIdT.png'
-            },
-            fields: getJournalFields(playerInfo)
-        };
+function displayJournal(journalInfo, playerName, msg) {
+    let fields = [];
+    let index = 0;
 
-        return msg.author.send({embed: journalEntryEmbed});
-    });
+    if (journalInfo.length === 0) {
+        // Base message that the player will see if they don't have any notes.
+        fields[0] = {name: "The pages got wet from the shipwreck and you can\'t make out any of the notes. At least future additions will be easier to read.", value: "`!add-note -<entry name> -<description>`\nDon't forget the `-`'s!"};
+    } else {
+        journalInfo.forEach(entry => {
+            fields[index++] = {name: entry.entry_name, value: entry.description};
+        });
+    }
+
+    let journal = new Discord.MessageEmbed()
+        .setColor("0x32a8a4")
+        .setTitle(`${playerName}'s Journal (${journalInfo.length}/25)`)
+        .setThumbnail("https://i.imgur.com/XYraIdT.png")
+        .addFields(fields);
+
+    msg.author.send(journal);
+    msg.react("✅");
 }
 
 function getSpellCastFields(playerInfo, spellInfo, extraInfo) {
@@ -75,10 +61,6 @@ function displaySpellCast(playerInfo, spellInfo, extraInfo, msg) {
         },
         fields: getSpellCastFields(playerInfo, spellInfo, extraInfo)
     };
-
-    if (extraInfo.specialAbility) {
-        spellCastEmbed.footer = { text: `Passive ability "${extraInfo.specialAbility}" has been activated.` }
-    }
 
     return msg.channel.send({embed: spellCastEmbed});
 }
@@ -463,3 +445,4 @@ exports.classMenuUi = classMenuUi;
 exports.playerInfo = playerInfo;
 exports.diceRoll = diceRoll;
 exports.attackInfo = attackInfo;
+exports.displayJournal = displayJournal;

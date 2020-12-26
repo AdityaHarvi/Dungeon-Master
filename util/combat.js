@@ -40,7 +40,7 @@ function bleed(bleedAmount, playerName, gameName, msg) {
             return error.error("You do not have enough health to do this action.", "Bleeding takes up twice the amount of HP. So if you wanted to regen 2 MP, it needs 4 HP!", msg);
         }
 
-        db.bleedPlayer(bleedAmount * 2, bleedAmount, playerName, gameName, msg, () => {
+        db.bleedPlayer(bleedAmount * 2, bleedAmount, playerName, gameName, () => {
             msg.channel.send(`You've lost \`${bleedAmount * 2}\` HP and gained \`${bleedAmount}\` MP.`);
         });
     });

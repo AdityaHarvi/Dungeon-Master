@@ -107,7 +107,7 @@ function _getAdminMenu() {
         .setFooter("All commands are lowercase.")
 }
 
-function generateBaseHelpMenu(gameHost, hostChannel, msg) {
+function generateBaseHelpMenu(msg) {
     const baseMenu = _getBaseHelpMenu();
     const combatMenu = _getCombatMenu();
     const inventoryMenu = _getInventoryMenu();
@@ -142,11 +142,7 @@ function generateBaseHelpMenu(gameHost, hostChannel, msg) {
                     helpMenu.edit(combatMenu);
                     break;
                 case "🕵️":
-                    if (gameHost && ui.isHost(gameHost, inputUserName)) {
-                        msg.guild.channels.cache.get(hostChannel).send(adminMenu);
-                    } else if (!gameHost) {
-                        helpMenu.edit(adminMenu);
-                    }
+                    helpMenu.edit(adminMenu);
                     break;
                 case "🌐":
                     helpMenu.edit(baseMenu);

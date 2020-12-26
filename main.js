@@ -9,11 +9,11 @@ const Discord = require("discord.js"),
     help = require('./displayInfo/help'),
     inv = require('./util/inventory'),
     combat = require("./util/combat"),
-    journal = require('./util/journal'),
+    dice = require("./util/dice"),
     adminModifyInventory = require('./admin/modifyInventory'),
     adminModifyStats = require('./admin/modifyStats'),
-    adminRoll = require('./admin/rollForAll'),
     ally = require('./admin/ally'),
+    ui = require("./util/UImethods"),
     purge = require('./util/purge');
 
 var activeGameObject;
@@ -56,15 +56,14 @@ client.on('message', msg => {
     // Error handling to ensure bot does not respond to itself and to only reply when commands are said in specific channels.
     if (msg.author.bot || !msg.content.startsWith(PREFIX) || !msg.member) return;
 
-    let args = msg.content.substring(PREFIX.length).split(" ");
+    let args = msg.content.substring(PREFIX.length).split(/\n| /);
     args[0] = args[0].toLowerCase();
 
     switch(args[0]) {
         // Handles displaying information on items / spells / abilities / classes / inventory.
         case "help":
             (activeGameObject) ?
-                // FIXME: Do we need to pass in the object?
-                help.baseMenu(activeGameObject.host, activeGameObject.hostChannel, msg) :
+                help.baseMenu(msg) :
                 error.error("Unable to find an active game.", null, msg);
             break;
         case "item":
@@ -129,7 +128,29 @@ client.on('message', msg => {
             if (!_errorChecksPass(activeGameObject, msg)) return;
             (args[1]) ?
                 inv.upload(args[1], msg.author.username, activeGameObject.game_title, msg) :
-                error.error("Incorrect inputs.", "`!upload <imgur URL>`\nThis command only accepts imgur links. Please note that the link should end with a `.png` or `.gif` extension.", msg);
+                error.error("What is the imgur link?", "`!upload <imgur URL>`\nThis command only accepts imgur links. Please note that the link should end with a `.png` or `.gif` extension.", msg);
+            break;
+        case "add-note":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            (args[1]) ?
+                inv.addNote(args, msg.author.username, activeGameObject.game_title, msg) :
+                error.error("What is the entry name and description?", "`!add-note -<entry name> -<description>`\nDon't forget the `-`'s.", msg);
+            break;
+        case "del-note":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            (args[1]) ?
+                inv.removeNote(args, msg.author.username, activeGameObject.game_title, msg) :
+                error.error("What is the entry name?", "`!del-note <entry name>`", msg);
+            break;
+        case "journal":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            inv.getJournal(msg.author.username, activeGameObject.game_title, msg);
+            break;
+        case "pay":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            (args[1] && args[2] && !isNaN(args[2])) ?
+                inv.pay(args[1], args[2], msg.author.username, activeGameObject, msg) :
+                error.error("Who are you paying and how much?", "`!pay <player name> <$>`\nThe second input is a number.", msg);
             break;
 
         // Combat commands.
@@ -158,6 +179,37 @@ client.on('message', msg => {
             break;
         case "cast":
             if (!_errorChecksPass(activeGameObject, msg)) return;
+            break;
+
+        // Admin Commands.
+        case "init":
+            (_errorChecksPass(activeGameObject, msg) && ui.isHost(activeGameObject.host, msg.author.username)) ?
+                dice.init(args[1], activeGameObject.players, activeGameObject.game_title, msg) :
+                error.error("You need to be hosting the game to run this command.", null, msg);
+            break;
+        case "give-money":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            (args[1] && args[2] && !isNaN(args[2]) && ui.isHost(activeGameObject.host, msg.author.username)) ?
+                database.giveMoney(args[1], activeGameObject.game_title, Number(args[2]), msg) :
+                error.error("Who are you paying and how much?", "`!give-money <player name> <$>`", msg);
+            break;
+        case "take-money":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            (args[1] && args[2] && !isNaN(args[2]) && ui.isHost(activeGameObject.host, msg.author.username)) ?
+                database.spendMoney(args[1], activeGameObject.game_title, args[2], msg, () => msg.react("✅")) :
+                error.error("Who are you taking money from and how much?", "`!take-money <player name> <$>`", msg);
+            break;
+        case "make-item":
+            break;
+        case "edit-item":
+            break;
+        case "make-spell":
+            break;
+        case "edit-spell":
+            break;
+        case "make-shop":
+            break;
+        case "unlock":
             break;
 
         // Misc commands.

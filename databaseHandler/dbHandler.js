@@ -1,5 +1,6 @@
 const sqlite3 = require("sqlite3").verbose(),
     setActive = require("../main"),
+    dice = require("../util/dice"),
     error = require("../util/error");
 
 function createDB() {
@@ -221,6 +222,28 @@ function newSpell(so) {
     db.close();
 }
 
+function init(players, playerFlag, enemyFlag, gameName, msg, callback) {
+    let result = [];
+    let playerObj = {};
+
+    if (!playerFlag && !enemyFlag) {
+        players.forEach(player => {
+            playerObj.name = player;
+            playerObj.roll = dice.roll();
+            result.push(playerObj);
+        });
+        if (callback) callback(result);
+        return;
+    } else if (playerFlag) {
+        players.forEach(player => {
+            playerObj.name = player;
+            // getBaiscPlayerInfo(player, gameName, )
+        });
+    } else {
+
+    }
+}
+
 function uploadImage(link, playerName, gameName, msg) {
     getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
         let db = new sqlite3.Database("dungeon.db", err => {
@@ -245,7 +268,85 @@ function uploadImage(link, playerName, gameName, msg) {
     });
 }
 
-function bleedPlayer(healthDecrease, manaIncrease, playerName, gameName, msg, callback) {
+function addJournalEntry(entryName, description, playerName, gameName, msg) {
+    let db = new sqlite3.Database("dungeon.db", err => {
+        if (err) {
+            console.log(err.message);
+            return;
+        }
+    });
+
+    db.get(
+        `INSERT INTO player_journal VALUES (
+            :entry_name,
+            :username,
+            :description,
+            :game_title
+        );`,
+        [entryName, playerName, description, gameName],
+        (err) => {
+            if (err) {
+                error.error("There is already an entry with that name.", "I send you a DM.", msg);
+                msg.delete();
+                msg.author.send(`I removed the note from the server to try to keep it private. But it failed to be written down. This is what you wrote: \`!add-note -${entryName} -${description}\``)
+            } else {
+                msg.delete();
+                msg.channel.send("Note added. Do `!journal` to take a look.");
+            }
+        }
+    );
+
+    db.close();
+}
+
+function deleteJournalEntry(entryName, playerName, gameName, msg) {
+    let db = new sqlite3.Database("dungeon.db", err => {
+        if (err) {
+            console.log(err.message);
+            return;
+        }
+    });
+
+    db.get(
+        `DELETE FROM player_journal
+        WHERE entry_name = ?
+        AND username = ?
+        AND game_title = ?;`,
+        [entryName, playerName, gameName]
+    );
+
+    msg.react("✅");
+
+    db.close();
+}
+
+function getJournalEntries(playerName, gameName, msg, callback) {
+    let db = new sqlite3.Database("dungeon.db", err => {
+        if (err) {
+            console.log(err.message);
+            return;
+        }
+    });
+
+    db.all(
+        `SELECT entry_name, description
+        FROM player_journal
+        WHERE username = ?
+        AND game_title = ?;`,
+        [playerName, gameName],
+        (err, rows) => {
+            if (!rows) {
+                callback([]);
+            } else {
+                callback(rows);
+            }
+        }
+    );
+
+    db.close();
+}
+
+function bleedPlayer(healthDecrease, manaIncrease, playerName, gameName, callback) {
     let db = new sqlite3.Database("dungeon.db", err => {
         if (err) {
             console.log(err.message);
@@ -510,35 +611,16 @@ function transferItem(senderName, recieverName, gameObject, itemName, quantity=1
     });
 }
 
-function giveMoney(playerName, gameObject, msg, quantity) {
-    getBaiscPlayerInfo(playerName, gameObject.game_title, msg, playerInfo => {
-        let db = new sqlite3.Database("dungeon.db", err => {
-            if (err) {
-                console.log(err.message);
-                return;
-            }
-        });
-
-        db.run(
-            `UPDATE player
-            SET money = money + ?
-            WHERE username = ?
-            AND game_title = ?;`,
-            [quantity, playerName, gameObject.game_title],
-            (err) => {
-                msg.guild.channels.cache.get(gameObject.hostChannel).send(`Successfully paid \`${playerName}\`, \`${quantity}\` gold.`);
-                msg.guild.channels.cache.get(gameObject.playerChannel).send(`\`${playerName}\` just got \`${quantity}\` :coin:!`);
-            }
-        );
-
-        db.close();
+function payPlayer(receiver, amount, playerName, gameName, msg) {
+    spendMoney(playerName, gameName, amount, msg, () => {
+        giveMoney(receiver, gameName, amount, msg);
     });
 }
 
-function spendMoney(playerName, gameObject, msg, quantity, callback) {
-    getBaiscPlayerInfo(playerName, gameObject.game_title, msg, playerInfo => {
+function spendMoney(playerName, gameName, quantity, msg, callback) {
+    getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
         if (quantity > playerInfo.money) {
-            return error.error(`${playerName} does not have enough money.`, `They are short ${quantity - playerInfo.money} :coin:.`, msg);
+            return error.error(`Not enough money.`, `Short ${quantity - playerInfo.money} :coin:.`, msg);
         }
 
         let db = new sqlite3.Database("dungeon.db", err => {
@@ -553,9 +635,33 @@ function spendMoney(playerName, gameObject, msg, quantity, callback) {
             SET money = money - ?
             WHERE username = ?
             AND game_title = ?;`,
-            [quantity, playerName, gameObject.game_title],
+            [quantity, playerName, gameName],
             (err) => {
                 if (callback) callback();
+            }
+        );
+
+        db.close();
+    });
+}
+
+function giveMoney(playerName, gameName, quantity, msg) {
+    getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+        let db = new sqlite3.Database("dungeon.db", err => {
+            if (err) {
+                console.log(err.message);
+                return;
+            }
+        });
+
+        db.run(
+            `UPDATE player
+            SET money = money + ?
+            WHERE username = ?
+            AND game_title = ?;`,
+            [quantity, playerName, gameName],
+            (err) => {
+                msg.react("✅");
             }
         );
 
@@ -1153,3 +1259,10 @@ exports.transferItem = transferItem;
 exports.bleedPlayer = bleedPlayer;
 exports.useItem = useItem;
 exports.uploadImage =uploadImage;
+exports.init = init;
+exports.addJournalEntry = addJournalEntry;
+exports.deleteJournalEntry = deleteJournalEntry;
+exports.getJournalEntries = getJournalEntries;
+exports.payPlayer = payPlayer;
+exports.giveMoney = giveMoney;
+exports.spendMoney = spendMoney;

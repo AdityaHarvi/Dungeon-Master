@@ -1,5 +1,6 @@
 const db = require("../databaseHandler/dbHandler"),
     ui = require("./UImethods"),
+    display = require("../displayInfo/displayInfo"),
     error = require("./error");
 
 /**
@@ -61,7 +62,7 @@ function drop(playerName, authorName, gameObject, rawInput, msg) {
     }
 
     let parsedCommand = ui.parseDashedCommand(rawInput);
-    parsedCommand[1] = parsedCommand[1].replace(" ", "_").toLowerCase();
+    parsedCommand[1] = parsedCommand[1].replace(/ /g, "_").toLowerCase();
 
     if (parsedCommand[2] && isNaN(parsedCommand[2]) && Number(parsedCommand[2]) > 0) {
         return error.error("The second input should be a positive numeric value.", "`!drop -<item name> -<quantity: optional>`", msg);
@@ -90,7 +91,7 @@ function transfer(playerName, gameObject, rawInput, msg) {
     }
 
     let parsedCommand = ui.parseDashedCommand(rawInput);
-    parsedCommand[2] = parsedCommand[2].replace(" ", "_").toLowerCase();
+    parsedCommand[2] = parsedCommand[2].replace(/ /g, "_").toLowerCase();
 
     if (parsedCommand[3] && isNaN(parsedCommand[3]) && Number(parsedCommand[3]) > 0) {
         return error.error("The quantity should be a positive numeric value.", "`!give -<player name> -<item name> -<quantity: optional>`", msg);
@@ -109,8 +110,53 @@ function upload(imageURL, playerName, gameName, msg) {
     db.uploadImage(imageURL, playerName, gameName, msg);
 }
 
+function addNote(rawInput, playerName, gameName, msg) {
+    let testForDash = 0;
+    rawInput.forEach(arg => {
+        if (arg.charAt(0) === "-") {
+            testForDash++;
+        }
+    });
+    if (testForDash !== 2) {
+        return error.error("Incorrect command format.", "This command is a little funky. Don't forget the `-` before the entry-name and description.\n**WARNING: You cannot use a dash anywhere in your entry-name or description!**\nIt can only appear right before the name/description.\n`!drop -<entry name> -<description>`", msg);
+    }
+
+    let parsedCommand = ui.parseDashedCommand(rawInput);
+    parsedCommand[1] = parsedCommand[1].replace(/ /g, "_").toLowerCase();
+
+    db.getJournalEntries(playerName, gameName, msg, info => {
+        if (info.length >= 25) {
+            return error.error("You journal is completely full!", "`!del-note <entry name>` to get rid of a few of them. You journal can only hold 25 entries at a time.", msg);
+        }
+        db.addJournalEntry(parsedCommand[1], parsedCommand[2], playerName, gameName, msg);
+    });
+}
+
+function removeNote(rawInput, playerName, gameName, msg) {
+    let entryName = ui.getName(rawInput);
+    db.deleteJournalEntry(entryName, playerName, gameName, msg);
+}
+
+function getJournal(playerName, gameName, msg) {
+    db.getJournalEntries(playerName, gameName, msg, info => {
+        display.displayJournal(info, playerName, msg);
+    });
+}
+
+function pay(receiver, amount, playerName, gameObject, msg) {
+    if (!gameObject.players.includes(receiver)) {
+        return error.error(`Could not find \`${receiver}\` in the list of players.`, "Player names are case sensitive. Try checking your spelling.", msg);
+    }
+
+    db.payPlayer(receiver, amount, playerName, gameObject.game_title, msg);
+}
+
 exports.drop = drop;
 exports.removeItem = removeItem;
 exports.equip = equip;
 exports.transfer = transfer;
 exports.upload = upload;
+exports.addNote = addNote;
+exports.removeNote = removeNote;
+exports.getJournal = getJournal;
+exports.pay = pay;
