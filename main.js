@@ -329,6 +329,13 @@ client.on('message', msg => {
                 stat.setMax(args, "`!set-max -<player name> -<health/mana> -<#>`", activeGameObject.game_title, activeGameObject.playerChannel, msg) :
                 error.error("Missing the 3 required inputs.", "`!set-max -<player name> -<health/mana> -<#>`", msg);
             break;
+        case "view-info":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            (args[1]) ?
+                display.playerInfo(args[1], activeGameObject, msg) :
+                error.error("What is the player name?", "`!view-info <player name>`", msg);
+            break;
         // case "play":
         //     if (!_errorChecksPass(activeGameObject, msg)) return;
         //     if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
