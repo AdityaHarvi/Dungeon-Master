@@ -45,8 +45,19 @@ function isImgurLink(imageURL) {
     return pattern.test(imageURL);
 }
 
+function dashAmount(rawInput) {
+    let dashNumber = 0;
+    rawInput.forEach(arg => {
+        if (arg.charAt(0) === "-") {
+            dashNumber++;
+        }
+    });
+    return dashNumber
+}
+
 exports.removeReaction = removeReaction;
 exports.isHost = isHost;
 exports.getName = getName;
 exports.parseDashedCommand = parseDashedCommand;
 exports.isImgurLink = isImgurLink;
+exports.dashAmount = dashAmount;

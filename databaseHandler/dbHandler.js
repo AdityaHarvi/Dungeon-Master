@@ -379,42 +379,27 @@ function castSpell(targetName, playerName, gameName, spellName, msg) {
                         let totalDamage = spellInfo.damage + roll - targetInfo.armor + playerInfo.bonusSpell;
                         if (totalDamage < 0) totalDamage = 0;
 
-                        damagePlayer(targetName, gameName, totalDamage, msg);
+                        damagePlayer(targetName, gameName, "health", totalDamage, msg);
                         display.castInfo(playerInfo, spellInfo, totalDamage, roll, targetInfo.armor, targetInfo.username, msg);
                     } else if (spellInfo.type === "healing") {
                         let roll = 0;
                         if (spellInfo.bonus_roll) roll = dice.roll(spellInfo.bonus_roll);
 
                         let totalHealing = spellInfo.healing + roll + playerInfo.bonusHealing;
-                        healPlayer(targetName, gameName, totalHealing, msg);
+                        healPlayer(targetName, gameName, "health", totalHealing, msg);
                         display.castInfo(playerInfo, spellInfo, totalHealing, roll, null, targetInfo.username, msg);
                     } else {
                         display.castInfo(playerInfo, spellInfo, null, null, null, null, msg);
                     }
 
-                    let db = new sqlite3.Database("dungeon.db", err => {
-                        if (err) {
-                            console.log(err.message);
-                            return;
-                        }
-                    });
-
-                    db.run(
-                        `UPDATE player
-                        SET mana = mana - ?
-                        WHERE username = ?
-                        AND game_title = ?;`,
-                        [spellInfo.mana_cost, playerName, gameName]
-                    );
-
-                    db.close();
+                    damagePlayer(playerName, gameName, "mana", spellInfo.mana_cost, msg);
                 });
             });
         });
     });
 }
 
-function damagePlayer(playerName, gameName, amount, msg, callback) {
+function damagePlayer(playerName, gameName, stat, amount, msg, callback) {
     getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
         let db = new sqlite3.Database("dungeon.db", err => {
             if (err) {
@@ -423,18 +408,31 @@ function damagePlayer(playerName, gameName, amount, msg, callback) {
             }
         });
 
-        if (playerInfo.health - amount <= 0) {
-            error.error(`${playerName} has been killed!`, null, msg);
+        switch (stat) {
+            case "health":
+                if (playerInfo.health - amount <= 0) {
+                    error.error(`${playerName} has been killed!`, null, msg);
+                    amount = playerInfo.health;
+                }
+                break;
+            case "mana":
+                if (playerInfo.mana - amount <= 0)
+                    amount = playerInfo.mana;
+                break;
+            case "strength":
+                if (playerInfo.strength - amount <= 0)
+                    amount = playerInfo.strength;
+                break;
         }
 
         db.run(
             `UPDATE player
-            SET health = health - ?
+            SET ${stat} = ${stat} - ?
             WHERE username = ?
             AND game_title = ?;`,
             [amount, playerName, gameName],
             (err) => {
-                if (callback) callback();
+                if (callback) callback(amount);
             }
         );
 
@@ -442,7 +440,7 @@ function damagePlayer(playerName, gameName, amount, msg, callback) {
     });
 }
 
-function healPlayer(playerName, gameName, amount, msg, callback) {
+function healPlayer(playerName, gameName, stat, amount, msg, callback) {
     getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
         let db = new sqlite3.Database("dungeon.db", err => {
             if (err) {
@@ -451,16 +449,60 @@ function healPlayer(playerName, gameName, amount, msg, callback) {
             }
         });
 
-        if (playerInfo.health + amount > playerInfo.maxHealth) {
-            amount = playerInfo.maxHealth - playerInfo.health;
+        switch(stat) {
+            case "health":
+                if (playerInfo.health + amount > playerInfo.maxHealth)
+                    amount = playerInfo.maxHealth - playerInfo.health;
+                break;
+            case "mana":
+                if (playerInfo.mana + amount > playerInfo.maxMana)
+                    amount = playerInfo.maxMana - playerInfo.mana;
+                break;
         }
 
         db.run(
             `UPDATE player
-            SET health = health + ?
+            SET ${stat} = ${stat} + ?
             WHERE username = ?
             AND game_title = ?;`,
             [amount, playerName, gameName],
+            (err) => {
+                if (callback) callback(amount);
+            }
+        );
+
+        db.close();
+    });
+}
+
+function setMaxStat(playerName, gameName, stat, amount, msg, callback) {
+    getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+        let db = new sqlite3.Database("dungeon.db", err => {
+            if (err) {
+                console.log(err.message);
+                return;
+            }
+        });
+
+        switch(stat) {
+            case "maxHealth":
+                if (amount < playerInfo.health)
+                    playerInfo.health = amount
+                break;
+            case "maxMana":
+                if (amount < playerInfo.mana)
+                    playerInfo.mana = amount;
+                break;
+        }
+
+        db.run(
+            `UPDATE player
+            SET ${stat} = ?,
+                health = ?,
+                mana = ?
+            WHERE username = ?
+            AND game_title = ?;`,
+            [amount, playerInfo.health, playerInfo.mana, playerName, gameName],
             (err) => {
                 if (callback) callback();
             }
@@ -967,7 +1009,7 @@ function _checkIfPlayerHasSpell(playerName, gameName, spellName, msg, callback) 
             } else if (callback && row) {
                 callback(row);
             } else if (!row) {
-                error.error(`\`${spellName}\` not found in inventory.`, "Try checking your spelling.", msg);
+                error.error(`\`${spellName}\` not found in player's list of known spells.`, "Try checking your spelling.", msg);
             }
         }
     );
@@ -1121,9 +1163,7 @@ function getItemInfo(itemName, alwaysReturn, msg, callback) {
 }
 
 function giveItem(playerName, gameObject, itemName, quantity=1, msg, callback) {
-    if (!gameObject.players.includes(playerName)) {
-        return error.error(`Could not find \`${playerName}\` in this game.`, "Player names are case sensitive unfortunately! Check if it looks right.", msg);
-    } else if (itemName === "bare_fist" || itemName === "torn_clothing") {
+    if (itemName === "bare_fist" || itemName === "torn_clothing") {
         return error.error("This is not an item you can give.", "This is a default item given to all players upon creation.", msg);
     }
 
@@ -1186,10 +1226,6 @@ function giveItem(playerName, gameObject, itemName, quantity=1, msg, callback) {
 }
 
 function giveSpell(playerName, gameObject, spellName, msg) {
-    if (!gameObject.players.includes(playerName)) {
-        return error.error(`Could not find \`${playerName}\` in this game.`, "Player names are case sensitive unfortunately! Check if it looks right.", msg);
-    }
-
     getBaiscPlayerInfo(playerName, gameObject.game_title, msg, playerInfo => {
         getSpellInfo(spellName, false, msg, spellInfo => {
             let db = new sqlite3.Database("dungeon.db", err => {
@@ -1212,6 +1248,36 @@ function giveSpell(playerName, gameObject, spellName, msg) {
                 } else {
                     msg.guild.channels.cache.get(gameObject.hostChannel).send(`✅ \`${spellName}\` successfully given to \`${playerName}\``);
                     if (!playerInfo.isBot) msg.guild.channels.cache.get(gameObject.playerChannel).send(`\`${playerName}\` has just received a spell! \`!info\` to check it out.`);
+                }
+            });
+
+            db.close();
+        });
+    });
+}
+
+function takeSpell(playerName, gameObject, spellName, msg) {
+    getBaiscPlayerInfo(playerName, gameObject.game_title, msg, playerInfo => {
+        _checkIfPlayerHasSpell(playerName, gameObject.game_title, spellName, msg, playerSpell => {
+            let db = new sqlite3.Database("dungeon.db", err => {
+                if (err) {
+                    console.log(err.message);
+                    return;
+                }
+            });
+
+            db.get(
+                `DELETE FROM player_spells
+                WHERE spell_name = ?
+                AND username = ?
+                AND game_title = ?;`,
+            [spellName, playerName, gameObject.game_title],
+            (err) => {
+                if (err) {
+                    msg.guild.channels.cache.get(gameObject.hostChannel).send(`❌ Could not remove the spell.`);
+                } else {
+                    msg.guild.channels.cache.get(gameObject.hostChannel).send(`✅ \`${spellName}\` successfully taken from \`${playerName}\``);
+                    if (!playerInfo.isBot) msg.guild.channels.cache.get(gameObject.playerChannel).send(`\`${playerName}\` just lost a spell!`);
                 }
             });
 
@@ -1566,3 +1632,6 @@ exports.deleteShop = deleteShop;
 exports.getShop = getShop;
 exports.buyItem = buyItem;
 exports.damagePlayer = damagePlayer;
+exports.healPlayer = healPlayer;
+exports.setMaxStat = setMaxStat;
+exports.takeSpell = takeSpell;

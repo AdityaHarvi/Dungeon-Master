@@ -22,7 +22,7 @@ function melee(enemyName, playerName, gameName, msg) {
             db.getItemInfo(playerInfo.weapon, false, msg, itemInfo => {
                 let damageRoll = dice.roll(itemInfo.damage_dice);
                 db.damagePlayer(playerName, gameName, damageRoll, msg);
-                display.attackInfo(playerInfo, itemInfo, damageRoll, msg);
+                display.attackInfo(playerInfo, enemyName, itemInfo, damageRoll, msg);
             });
         });
     });

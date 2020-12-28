@@ -9,13 +9,8 @@ const db = require("../databaseHandler/dbHandler"),
  * @param {string} itemName Name of item to equip.
  * @param {object} msg The object containing information about the message sent through discord.
  */
-function equip(playerName, authorName, gameObject, rawInput, msg) {
-    if (playerName !== authorName && !ui.isHost(authorName, gameObject.host)) {
-        return error.error("Only the host can equip an item for another player.", null, msg);
-    }
-
+function equip(playerName, gameObject, rawInput, msg) {
     let itemName = ui.getName(rawInput);
-
     db.equipItem(playerName, gameObject.game_title, itemName, msg);
 }
 
@@ -24,11 +19,7 @@ function equip(playerName, authorName, gameObject, rawInput, msg) {
  * @param {string} itemName The name of the item to drop.
  * @param {object} msg The object containing information about the message sent through discord.
  */
-function drop(playerName, authorName, gameObject, rawInput, msg) {
-    if (playerName !== authorName && !ui.isHost(authorName, gameObject.host)) {
-        return error.error("Only the host can remove an item from another player.", null, msg);
-    }
-
+function drop(playerName, gameObject, rawInput, msg) {
     let testForDash = 0;
     rawInput.forEach(arg => {
         if (arg.charAt(0) === "-") {
@@ -49,6 +40,26 @@ function drop(playerName, authorName, gameObject, rawInput, msg) {
     db.dropItem(playerName, gameObject.game_title, parsedCommand[1], parsedCommand[2], msg, droppedAmount => {
         msg.channel.send(`\`${playerName}\` dropped \`${droppedAmount}\` \`${parsedCommand[1]}\`.`);
     });
+}
+
+function adminRemoveItem(rawInput, gameObject, msg) {
+    if (ui.dashAmount(rawInput) < 2)
+        return error.error("Improper format.", "`!take-item -<player name> -<item name> -<quantity: optional>`", msg);
+
+    let parsedCommand = ui.parseDashedCommand(rawInput);
+    rawInput.splice(1,1);
+
+    drop(parsedCommand[1], gameObject, rawInput, msg);
+}
+
+function adminRemoveSpell(rawInput, gameObject, msg) {
+    if (ui.dashAmount(rawInput) !== 2)
+        return error.error("Improper format.", "`!take-spell -<player name> -<spell name>`", msg);
+
+    let parsedCommand = ui.parseDashedCommand(rawInput);
+    parsedCommand[2] = parsedCommand[2].replace(/ /g, "_").toLowerCase();
+
+    db.takeSpell(parsedCommand[1], gameObject, parsedCommand[2], msg);
 }
 
 /**
@@ -141,7 +152,9 @@ function giveItem(rawInput, gameObject, msg) {
     if (!isNaN(parsedCommand[2])) return error.error("What is the name of the item?", "Don't forget the `-` before the inputs.\n`!give-item -<player name> -<item name> -<#: optional>`", msg);
     if (parsedCommand[3] && isNaN(parsedCommand[3])) return error.error("The last input is a numeric value.", "Don't forget the `-` before the inputs.\n`!give-item -<player name> -<item name> -<#: optional>`", msg);
 
-    db.giveItem(parsedCommand[1], gameObject, parsedCommand[2], Number(parsedCommand[3]), msg);
+    db.giveItem(parsedCommand[1], gameObject, parsedCommand[2], Number(parsedCommand[3]), msg, amountGiven => {
+        msg.channel.send(`Successfully gave ${parsedCommand[1]}, ${amountGiven} ${parsedCommand[2]}`);
+    });
 }
 
 function giveSpell(rawInput, gameObject, msg) {
@@ -171,3 +184,5 @@ exports.getJournal = getJournal;
 exports.pay = pay;
 exports.giveItem = giveItem;
 exports.giveSpell = giveSpell;
+exports.adminRemoveItem = adminRemoveItem;
+exports.adminRemoveSpell = adminRemoveSpell;

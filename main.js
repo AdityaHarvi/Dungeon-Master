@@ -15,9 +15,12 @@ const Discord = require("discord.js"),
     adminModifyStats = require('./admin/modifyStats'),
     ally = require('./admin/ally'),
     ui = require("./util/UImethods"),
-    purge = require("./util/purge");
+    purge = require("./util/purge")
+    music = require("./util/music")
+    stat = require("./util/statHandeling");
 
 var activeGameObject;
+var queue = new Map();
 
 // Log into the bot.
 client.login(getToken.getToken());
@@ -31,6 +34,18 @@ client.on('ready', () => {
 
 function setActiveGameObject(newGameObject) {
     activeGameObject = newGameObject;
+}
+
+function queueDelete(guildID) {
+    queue.delete(guildID);
+}
+
+function queueSet(guildID, queueContruct) {
+    queue.set(guildID, queueContruct)
+}
+
+function getQueue(guildID) {
+    return queue.get(guildID);
 }
 
 function _errorChecksPass(gameObject, msg) {
@@ -90,17 +105,17 @@ client.on('message', msg => {
                 gameHandler.setupGame(args, msg) :
                 error.error("What is the campaign name?", "`!create <Campaign Name>`", msg);
             break;
-        case "pause":
+        case "pause-game":
             (args[1]) ?
                 gameHandler.pauseGame(args, msg) :
                 error.error("What is the campaign name?", "`!pause <Campaign Name>`", msg);
             break;
-        case "end":
+        case "end-game":
             (args[1]) ?
                 gameHandler.endGame(args, msg) :
                 error.error("What is the campaign name?", "`!end <Campaign Name>`", msg);
             break;
-        case "play":
+        case "play-game":
             (args[1]) ?
                 gameHandler.playGame(args, msg) :
                 error.error("What is the campaign name?", "`!play <Campaign Name>`", msg);
@@ -110,13 +125,13 @@ client.on('message', msg => {
         case "equip":
             if (!_errorChecksPass(activeGameObject, msg)) return;
             (args[1]) ?
-                inv.equip(msg.author.username, msg.author.username, activeGameObject, args, msg) :
+                inv.equip(msg.author.username, activeGameObject, args, msg) :
                 error.error("What is the item you want to equip?", "`!equip <item name>`", msg);
             break;
         case "drop":
             if (!_errorChecksPass(activeGameObject, msg)) return;
             (args[1]) ?
-                inv.drop(msg.author.username, msg.author.username, activeGameObject, args, msg) :
+                inv.drop(msg.author.username, activeGameObject, args, msg) :
                 error.error("What is the item name?", "This command is a little funky. Don't forget the `-` before the name and quantity.\n`!drop -<item name> -<quantity: optional>`", msg);
             break;
         case "give":
@@ -265,12 +280,26 @@ client.on('message', msg => {
                 inv.giveSpell(args, activeGameObject, msg) :
                 error.error("Incrrect input.", "Don't forget the `-` before the inputs.\n`!give-spell -<player name> -<spell name>`", msg);
             break;
+        case "take-spell":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            (args[1]) ?
+                inv.adminRemoveSpell(args, activeGameObject, msg) :
+                error.error("What are you taking and from who?", "`!take-spell -<player name> -<spell name>`", msg);
+            break;
         case "give-item":
             if (!_errorChecksPass(activeGameObject, msg)) return;
             if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
             (args[1]) ?
                 inv.giveItem(args, activeGameObject, msg) :
                 error.error("Incrrect input.", "Don't forget the `-` before the inputs.\n`!give-item -<player name> -<item name> -<#: optional>`", msg);
+            break;
+        case "take-item":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            (args[1]) ?
+                inv.adminRemoveItem(args, activeGameObject, msg) :
+                error.error("What are you taking and from who?", "`!take-item -<player name> -<item name> -<quantity: optional>`", msg);
             break;
         case "purge":
             if (!_errorChecksPass(activeGameObject, msg)) return;
@@ -279,6 +308,50 @@ client.on('message', msg => {
                 purge.purge(args[1], msg.author.username, activeGameObject.host, msg) :
                 error.error("Your input needs to be a number.", "`!purge <#>`", msg);
             break;
+        case "inc":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            (args[1]) ?
+                stat.handleStats(true, args, "`!inc -<player name> -<health/mana/strength> -<#>`", activeGameObject.game_title, activeGameObject.playerChannel, msg) :
+                error.error("Missing the 3 required inputs.", "`!inc -<player name> -<health/mana/strength> -<#>`", msg);
+            break;
+        case "dec":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            (args[1]) ?
+                stat.handleStats(false, args, "`!dec -<player name> -<health/mana/strength> -<#>`", activeGameObject.game_title, activeGameObject.playerChannel, msg) :
+                error.error("Missing the 3 required inputs.", "`!dec -<player name> -<health/mana/strength> -<#>`", msg);
+            break;
+        case "set-max":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            (args[1]) ?
+                stat.setMax(args, "`!set-max -<player name> -<health/mana> -<#>`", activeGameObject.game_title, activeGameObject.playerChannel, msg) :
+                error.error("Missing the 3 required inputs.", "`!set-max -<player name> -<health/mana> -<#>`", msg);
+            break;
+        // case "play":
+        //     if (!_errorChecksPass(activeGameObject, msg)) return;
+        //     if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+        //     (args[1]) ?
+        //         music.execute(msg) :
+        //         error.error("What is the song you want to play?", null, msg);
+        //     break;
+        // case "skip":
+        //     if (!_errorChecksPass(activeGameObject, msg)) return;
+        //     if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+        //     music.skip(msg);
+        //     break;
+        // case "stop":
+        //     if (!_errorChecksPass(activeGameObject, msg)) return;
+        //     if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+        //     music.stop(msg);
+        //     break;
+
+        // Misc commands.
+        case "coin":
+            let coin = ['Heads', 'Tails'];
+            msg.reply(` got \`${coin[dice.roll(2) - 1]}\``);
+            break;
 
         default:
             msg.react("❓");
@@ -286,3 +359,6 @@ client.on('message', msg => {
 });
 
 exports.setActiveGameObject = setActiveGameObject;
+exports.queueDelete = queueDelete;
+exports.queueSet = queueSet;
+exports.getQueue = getQueue;

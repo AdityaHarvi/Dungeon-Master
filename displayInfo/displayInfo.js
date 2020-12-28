@@ -65,10 +65,10 @@ function castInfo(playerInfo, spellInfo, amount, roll, enemyArmor, enemyName, ms
     return msg.channel.send(spellEmbed);
 }
 
-function attackInfo(playerInfo, itemInfo, damageRoll, msg) {
+function attackInfo(playerInfo, enemyName, itemInfo, damageRoll, msg) {
     let attackEmbed = new Discord.MessageEmbed()
         .setColor("0x995e06")
-        .setTitle(`${playerInfo.username} overcomes the enemy's armor!`)
+        .setTitle(`${playerInfo.username} cuts through ${enemyName}'s armor!`)
         .setThumbnail(itemInfo.image)
         .addFields(
             {name: `Total Damage Dealt: \`${damageRoll}\``, value: `D${itemInfo.damage_dice} (${damageRoll})`}
@@ -79,10 +79,14 @@ function attackInfo(playerInfo, itemInfo, damageRoll, msg) {
 
 function _getPlayerInfoEmbed(playerInfo, weaponInfo, clothingInfo) {
     let bonusArmor = "\u200b";
+    let bonusSpells = "\u200b";
 
-    if (playerInfo.armor > 0) {
+    if (playerInfo.armor > 0)
         bonusArmor = `Total Armor: ${playerInfo.armor}`;
-    }
+    if (playerInfo.bonusSpell)
+        bonusSpells += `Spell Damage Boost: ${playerInfo.bonusSpell}\n`;
+    if (playerInfo.bonusHealing)
+        bonusSpells += `Healing Boost: ${playerInfo.bonusHealing}`;
 
     let itemBonuses = _getItemBonus(weaponInfo);
     let clothingBonuses = _getItemBonus(clothingInfo);
@@ -94,7 +98,7 @@ function _getPlayerInfoEmbed(playerInfo, weaponInfo, clothingInfo) {
         .addFields(
             {name: `❤️ ${playerInfo.health} / ${playerInfo.maxHealth}`, value: bonusArmor, inline: true},
             {name: `💪 ${playerInfo.strength}`, value: "\u200b", inline: true},
-            {name: `🧪 ${playerInfo.mana} / ${playerInfo.maxMana}`, value: "\u200b", inline: true},
+            {name: `🧪 ${playerInfo.mana} / ${playerInfo.maxMana}`, value: bonusSpells, inline: true},
             {name: `🥼: ${playerInfo.clothing}`, value: clothingBonuses, inline: true},
             {name: `🗡️: ${playerInfo.weapon}`, value: itemBonuses, inline: true},
             {name: `:coin: ${playerInfo.money}`, value: "\u200b", inline: true},
