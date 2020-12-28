@@ -1,12 +1,13 @@
 const sqlite3 = require("sqlite3").verbose(),
     setActive = require("../main"),
     dice = require("../util/dice"),
+    display = require("../displayInfo/displayInfo"),
     error = require("../util/error");
 
 function createDB() {
     let db = new sqlite3.Database("dungeon.db");
 
-    db.get("PRAGMA foreign_keys = ON;");
+    db.run("PRAGMA foreign_keys = ON;");
 
     db.run(
         `CREATE TABLE IF NOT EXISTS game (
@@ -120,6 +121,7 @@ function createDB() {
             type TEXT,
             mana_cost INTEGER,
             damage INTEGER,
+            healing INTEGER,
             bonus_roll INTEGER,
             PRIMARY KEY (spell_name)
         );`
@@ -162,10 +164,20 @@ function createDB() {
         );`
     );
 
+    db.run(
+        `CREATE TABLE IF NOT EXISTS shops (
+            shop_name TEXT NOT NULL,
+            stock TEXT NOT NULL,
+            game_title TEXT NOT NULL,
+            PRIMARY KEY (shop_name, game_title),
+            FOREIGN KEY (game_title) REFERENCES game ON DELETE CASCADE
+        );`
+    );
+
     db.close();
 }
 
-function newItem(io) {
+function newItem(io, callback) {
     let db = new sqlite3.Database("dungeon.db", err => {
         if (err) {
             console.log(err.message);
@@ -192,13 +204,18 @@ function newItem(io) {
             :bonusInventory,
             :bonusMoney
         );`,
-        [io.name, io.equipable, io.consumable, io.info, io.image, io.damageDice, io.weapon, io.bonusHealth, io.bonusStrength, io.bonusMana, io.bonusArmor, io.bonusSpell, io.bonusHealing, io.bonusLuck, io.bonusInventory, io.bonusMoney]
+        [io.name, io.equipable, io.consumable, io.description, io.image, io.damage_dice, io.weapon, io.bonusHealth, io.bonusStrength, io.bonusMana, io.bonusArmor, io.bonusSpell, io.bonusHealing, io.bonusLuck, io.bonusInventory, io.bonusMoney],
+        (err) => {
+            if (err) {
+                console.log("Database Error: " + err);
+            } else if (callback) callback();
+        }
     );
 
     db.close();
 }
 
-function newSpell(so) {
+function newSpell(so, callback) {
     let db = new sqlite3.Database("dungeon.db", err => {
         if (err) {
             console.log(err.message);
@@ -214,34 +231,243 @@ function newSpell(so) {
             :type,
             :mana_cost,
             :damage,
+            :healing,
             :bonus_roll
         );`,
-        [so.name, so.info, so.image, so.type, so.mana, so.damage, so.bonus_roll]
+        [so.name, so.description, so.image, so.type, so.mana_cost, so.damage, so.healing, so.bonus_roll],
+        (err) => {
+            if (err) {
+                console.log("Database Error: " + err);
+            } else if (callback) callback();
+        }
     );
 
     db.close();
 }
 
-function init(players, playerFlag, enemyFlag, gameName, msg, callback) {
-    let result = [];
-    let playerObj = {};
+function deleteItem(itemName, msg) {
+    let db = new sqlite3.Database("dungeon.db", err => {
+        if (err) {
+            console.log(err.message);
+            return;
+        }
+    });
 
-    if (!playerFlag && !enemyFlag) {
-        players.forEach(player => {
-            playerObj.name = player;
-            playerObj.roll = dice.roll();
-            result.push(playerObj);
-        });
-        if (callback) callback(result);
-        return;
-    } else if (playerFlag) {
-        players.forEach(player => {
-            playerObj.name = player;
-            // getBaiscPlayerInfo(player, gameName, )
-        });
-    } else {
+    db.run(
+        `DELETE FROM items
+        WHERE item_name = ?;`,
+        [itemName]
+    );
 
-    }
+    db.run(
+        `DELETE FROM player_items
+        WHERE item_name = ?;`,
+        [itemName]
+    );
+
+    msg.react("✅");
+
+    db.close();
+}
+
+function deleteSpell(spellName, msg) {
+    let db = new sqlite3.Database("dungeon.db", err => {
+        if (err) {
+            console.log(err.message);
+            return;
+        }
+    });
+
+    db.run(
+        `DELETE FROM spells
+        WHERE spell_name = ?;`,
+        [spellName]
+    );
+
+    db.run(
+        `DELETE FROM player_spells
+        WHERE spell_name = ?;`,
+        [spellName]
+    );
+
+    msg.react("✅");
+
+    db.close();
+}
+
+function createShop(shopName, stock, gameName) {
+    let db = new sqlite3.Database("dungeon.db", err => {
+        if (err) {
+            console.log(err.message);
+            return;
+        }
+    });
+
+    db.run(
+        `INSERT INTO shops VALUES (
+            :shop_name,
+            :stock,
+            :game_title
+        );`,
+        [shopName, stock, gameName]
+    );
+
+    db.close();
+}
+
+function deleteShop(shopName, gameName, msg) {
+    let db = new sqlite3.Database("dungeon.db", err => {
+        if (err) {
+            console.log(err.message);
+            return;
+        }
+    });
+
+    db.run(
+        `DELETE FROM shops
+        WHERE shop_name = ?
+        AND game_title = ?;`,
+        [shopName, gameName]
+    );
+
+    msg.react("✅");
+
+    db.close();
+}
+
+function getShop(shopName, gameName, alwaysReturn, msg, callback) {
+    let db = new sqlite3.Database("dungeon.db", err => {
+        if (err) {
+            console.log(err.message);
+            return;
+        }
+    });
+
+    db.get(
+        `SELECT *
+        FROM shops
+        WHERE shop_name = ?
+        AND game_title = ?;`,
+        [shopName, gameName],
+        (err, row) => {
+            if (err) {
+                console.log(err.message);
+            } else if (callback && (row || alwaysReturn)) {
+                callback(row);
+            } else if (!row && !alwaysReturn) {
+                error.error(`\`${shopName}\` does not exist`, `Create a shop with:\n\`!shop -${shopName} -<item name> -<$> -<item name> -<$>...\`\nThis allows for up to 9 items to be sold in a store.`, msg);
+            }
+        }
+    );
+
+    db.close();
+}
+
+function castSpell(targetName, playerName, gameName, spellName, msg) {
+    _checkIfPlayerHasSpell(playerName, gameName, spellName, msg, hasSpell => {
+        getSpellInfo(spellName, false, msg, spellInfo => {
+            getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+                getBaiscPlayerInfo(targetName, gameName, msg, targetInfo => {
+                    if (playerInfo.mana < spellInfo.mana_cost) {
+                        return error.error("Not enough mana.", `Need \`${spellInfo.mana_cost - playerInfo.mana}\` more mana.`, msg);
+                    }
+
+                    if (spellInfo.type === "attack") {
+                        let roll = 0;
+                        if (spellInfo.bonus_roll) roll = dice.roll(spellInfo.bonus_roll);
+
+                        let totalDamage = spellInfo.damage + roll - targetInfo.armor + playerInfo.bonusSpell;
+                        if (totalDamage < 0) totalDamage = 0;
+
+                        damagePlayer(targetName, gameName, totalDamage, msg);
+                        display.castInfo(playerInfo, spellInfo, totalDamage, roll, targetInfo.armor, targetInfo.username, msg);
+                    } else if (spellInfo.type === "healing") {
+                        let roll = 0;
+                        if (spellInfo.bonus_roll) roll = dice.roll(spellInfo.bonus_roll);
+
+                        let totalHealing = spellInfo.healing + roll + playerInfo.bonusHealing;
+                        healPlayer(targetName, gameName, totalHealing, msg);
+                        display.castInfo(playerInfo, spellInfo, totalHealing, roll, null, targetInfo.username, msg);
+                    } else {
+                        display.castInfo(playerInfo, spellInfo, null, null, null, null, msg);
+                    }
+
+                    let db = new sqlite3.Database("dungeon.db", err => {
+                        if (err) {
+                            console.log(err.message);
+                            return;
+                        }
+                    });
+
+                    db.run(
+                        `UPDATE player
+                        SET mana = mana - ?
+                        WHERE username = ?
+                        AND game_title = ?;`,
+                        [spellInfo.mana_cost, playerName, gameName]
+                    );
+
+                    db.close();
+                });
+            });
+        });
+    });
+}
+
+function damagePlayer(playerName, gameName, amount, msg, callback) {
+    getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+        let db = new sqlite3.Database("dungeon.db", err => {
+            if (err) {
+                console.log(err.message);
+                return;
+            }
+        });
+
+        if (playerInfo.health - amount <= 0) {
+            error.error(`${playerName} has been killed!`, null, msg);
+        }
+
+        db.run(
+            `UPDATE player
+            SET health = health - ?
+            WHERE username = ?
+            AND game_title = ?;`,
+            [amount, playerName, gameName],
+            (err) => {
+                if (callback) callback();
+            }
+        );
+
+        db.close();
+    });
+}
+
+function healPlayer(playerName, gameName, amount, msg, callback) {
+    getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+        let db = new sqlite3.Database("dungeon.db", err => {
+            if (err) {
+                console.log(err.message);
+                return;
+            }
+        });
+
+        if (playerInfo.health + amount > playerInfo.maxHealth) {
+            amount = playerInfo.maxHealth - playerInfo.health;
+        }
+
+        db.run(
+            `UPDATE player
+            SET health = health + ?
+            WHERE username = ?
+            AND game_title = ?;`,
+            [amount, playerName, gameName],
+            (err) => {
+                if (callback) callback();
+            }
+        );
+
+        db.close();
+    });
 }
 
 function uploadImage(link, playerName, gameName, msg) {
@@ -374,10 +600,12 @@ function useItem(itemName, playerName, gameName, msg) {
         getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
             itemInfo.quantity -= 1;
             let deleteItem = (itemInfo.quantity <= 0) ? true : false;
-            getItemInfo(itemName, msg, fullItemInfo => {
+            getItemInfo(itemName, false, msg, fullItemInfo => {
                 if (!fullItemInfo.consumable) {
                     return error.error("This item cannot be consumed.", null, msg);
                 }
+
+                fullItemInfo.bonusHealth += playerInfo.bonusHealing;
 
                 if (fullItemInfo.bonusHealth + playerInfo.health > playerInfo.maxHealth) {
                     fullItemInfo.bonusHealth = playerInfo.maxHealth - playerInfo.health;
@@ -455,7 +683,7 @@ function equipItem(playerName, gameName, itemName, msg) {
     _checkIfPlayerHasItem(playerName, gameName, itemName, msg, hasItem => {
         getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
             // Get the to-be equiped item information.
-            getItemInfo(itemName, msg, itemInfo => {
+            getItemInfo(itemName, false, msg, itemInfo => {
                 if (!itemInfo.equipable) {
                     return error.error("This item cannot be equiped.", null, msg);
                 }
@@ -464,7 +692,7 @@ function equipItem(playerName, gameName, itemName, msg) {
                 (itemInfo.weapon) ? itemType = "weapon" : itemType = "clothing";
 
                 // Get the currently equiped item information and do the exchange.
-                getItemInfo(playerInfo[itemType], msg, equipedItemInfo => {
+                getItemInfo(playerInfo[itemType], false, msg, equipedItemInfo => {
                     let simulatedMaxHp = playerInfo.maxHealth - equipedItemInfo.bonusHealth + itemInfo.bonusHealth;
                     let simulatedMaxMana = playerInfo.maxMana - equipedItemInfo.maxMana + itemInfo.maxMana;
 
@@ -620,7 +848,7 @@ function payPlayer(receiver, amount, playerName, gameName, msg) {
 function spendMoney(playerName, gameName, quantity, msg, callback) {
     getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
         if (quantity > playerInfo.money) {
-            return error.error(`Not enough money.`, `Short ${quantity - playerInfo.money} :coin:.`, msg);
+            return error.error(`${playerName} does not enough money.`, `Short ${quantity - playerInfo.money} :coin:.`, msg);
         }
 
         let db = new sqlite3.Database("dungeon.db", err => {
@@ -642,6 +870,26 @@ function spendMoney(playerName, gameName, quantity, msg, callback) {
         );
 
         db.close();
+    });
+}
+
+function buyItem(playerName, gameObject, itemName, price, msg) {
+    // Confirm that the player is a part of the game.
+    getFullPlayerInfo(playerName, gameObject.game_title, msg, playerInfo => {
+        let occupiedInventory = 0;
+        playerInfo.items.forEach(itemObject => {
+            occupiedInventory = itemObject.quantity;
+        });
+
+        if (occupiedInventory >= playerInfo.maxInventory) {
+            return error.error(`${playerName} does not have enough inventory space.`, null, msg);
+        }
+
+        spendMoney(playerName, gameObject.game_title, price, msg, () => {
+            giveItem(playerName, gameObject, itemName, 1, msg, success => {
+                msg.channel.send(`${playerName} bought a ${itemName}`);
+            });
+        });
     });
 }
 
@@ -689,8 +937,37 @@ function _checkIfPlayerHasItem(playerName, gameName, itemName, msg, callback) {
                 console.log(err.message);
             } else if (callback && row) {
                 callback(row);
-            } else {
+            } else if (!row) {
                 error.error(`\`${itemName}\` not found in inventory.`, "Try checking your spelling.", msg);
+            }
+        }
+    );
+
+    db.close();
+}
+
+function _checkIfPlayerHasSpell(playerName, gameName, spellName, msg, callback) {
+    let db = new sqlite3.Database("dungeon.db", err => {
+        if (err) {
+            console.log(err.message);
+            return;
+        }
+    });
+
+    db.get(
+        `SELECT spell_name
+        FROM player_spells
+        WHERE username = ?
+        AND spell_name = ?
+        AND game_title = ?;`,
+        [playerName, spellName, gameName],
+        (err, row) => {
+            if (err) {
+                console.log(err.message);
+            } else if (callback && row) {
+                callback(row);
+            } else if (!row) {
+                error.error(`\`${spellName}\` not found in inventory.`, "Try checking your spelling.", msg);
             }
         }
     );
@@ -730,7 +1007,7 @@ function getBaiscPlayerInfo(playerName, gameName, msg, callback) {
                 console.log(err.message);
             } else if (callback && row) {
                 callback(row);
-            } else {
+            } else if (!row) {
                 error.error(`Could not find \`${playerName}\` in this game.`, "Player names are case sensitive unfortunately! Check if it looks right.", msg);
             }
         }
@@ -789,7 +1066,7 @@ function getPlayerSpells(playerName, gameName, callback) {
     db.close();
 }
 
-function getSpellInfo(spellName, msg, callback) {
+function getSpellInfo(spellName, alwaysReturn, msg, callback) {
     let db = new sqlite3.Database("dungeon.db", err => {
         if (err) {
             console.log(err.message);
@@ -805,9 +1082,9 @@ function getSpellInfo(spellName, msg, callback) {
         (err, row) => {
             if (err) {
                 console.log(err.message);
-            } else if (callback && row) {
+            } else if (callback && (row || alwaysReturn)) {
                 callback(row);
-            } else {
+            } else if (!row && !alwaysReturn) {
                 error.error("This spell does not exist.", `The host will need to \`!make spell ${spellName}\` to create the spell.`, msg);
             }
         }
@@ -816,7 +1093,7 @@ function getSpellInfo(spellName, msg, callback) {
     db.close();
 }
 
-function getItemInfo(itemName, msg, callback) {
+function getItemInfo(itemName, alwaysReturn, msg, callback) {
     let db = new sqlite3.Database("dungeon.db", err => {
         if (err) {
             console.log(err.message);
@@ -832,9 +1109,9 @@ function getItemInfo(itemName, msg, callback) {
         (err, row) => {
             if (err) {
                 console.log(err.message);
-            } else if (callback && row) {
+            } else if (callback && (row || alwaysReturn)) {
                 callback(row);
-            } else {
+            } else if (!row && !alwaysReturn) {
                 error.error("This item does not exist.", `The host will need to \`!make item ${itemName}\` to create the item.`, msg);
             }
         }
@@ -843,14 +1120,14 @@ function getItemInfo(itemName, msg, callback) {
     db.close();
 }
 
-function giveItem(playerName, gameObject, itemName, quantity, msg, callback) {
+function giveItem(playerName, gameObject, itemName, quantity=1, msg, callback) {
     if (!gameObject.players.includes(playerName)) {
         return error.error(`Could not find \`${playerName}\` in this game.`, "Player names are case sensitive unfortunately! Check if it looks right.", msg);
     } else if (itemName === "bare_fist" || itemName === "torn_clothing") {
         return error.error("This is not an item you can give.", "This is a default item given to all players upon creation.", msg);
     }
 
-    getItemInfo(itemName, msg, itemInfo => {
+    getItemInfo(itemName, false, msg, itemInfo => {
         getFullPlayerInfo(playerName, gameObject.game_title, msg, playerInfo => {
             if (playerInfo) {
                 let occcupiedInventory = 0;
@@ -896,7 +1173,9 @@ function giveItem(playerName, gameObject, itemName, quantity, msg, callback) {
                     (err) => {
                         if (err) {
                             console.log(err.message);
-                        } else if (callback) callback(quantity);
+                        } else if (callback) {
+                            callback(quantity);
+                        }
                     }
                 );
 
@@ -912,7 +1191,7 @@ function giveSpell(playerName, gameObject, spellName, msg) {
     }
 
     getBaiscPlayerInfo(playerName, gameObject.game_title, msg, playerInfo => {
-        getSpellInfo(spellName, msg, spellInfo => {
+        getSpellInfo(spellName, false, msg, spellInfo => {
             let db = new sqlite3.Database("dungeon.db", err => {
                 if (err) {
                     console.log(err.message);
@@ -929,9 +1208,9 @@ function giveSpell(playerName, gameObject, spellName, msg) {
             [spellName, playerName, gameObject.game_title],
             (err) => {
                 if (err) {
-                    msg.guild.channels.cache.get(gameObject.hostChannel).send(`\`${playerName}\` already has this spell.`);
+                    msg.guild.channels.cache.get(gameObject.hostChannel).send(`❌ \`${playerName}\` already has this spell.`);
                 } else {
-                    msg.guild.channels.cache.get(gameObject.hostChannel).send(`\`${spellName}\` successfully given to \`${playerName}\``);
+                    msg.guild.channels.cache.get(gameObject.hostChannel).send(`✅ \`${spellName}\` successfully given to \`${playerName}\``);
                     if (!playerInfo.isBot) msg.guild.channels.cache.get(gameObject.playerChannel).send(`\`${playerName}\` has just received a spell! \`!info\` to check it out.`);
                 }
             });
@@ -1006,14 +1285,12 @@ function getGameInfo(gameName, callback) {
                 console.log(err.message);
             }
 
-            let gameObject = row;
-
-            if (gameObject) {
-                gameObject.players = _stringToArray(gameObject.players);
-                gameObject.declined = _stringToArray(gameObject.declined);
+            if (row) {
+                row.players = _stringToArray(row.players);
+                row.declined = _stringToArray(row.declined);
             }
 
-            callback(gameObject);
+            callback(row);
         }
     );
     db.close();
@@ -1065,6 +1342,11 @@ function getActiveGame(callback) {
         (err, row) => {
             if (err) {
                 console.log(err.message);
+            }
+
+            if (row) {
+                row.players = _stringToArray(row.players);
+                row.declined = _stringToArray(row.declined);
             }
 
             setActive.setActiveGameObject(row);
@@ -1130,6 +1412,17 @@ function deleteGame(gameName) {
 
     db.run(
         `DELETE FROM player_journal
+        WHERE game_title = ?`,
+        [gameName],
+        (err) => {
+            if (err) {
+                console.log(err.message);
+            }
+        }
+    );
+
+    db.run(
+        `DELETE FROM shops
         WHERE game_title = ?`,
         [gameName],
         (err) => {
@@ -1259,10 +1552,17 @@ exports.transferItem = transferItem;
 exports.bleedPlayer = bleedPlayer;
 exports.useItem = useItem;
 exports.uploadImage =uploadImage;
-exports.init = init;
 exports.addJournalEntry = addJournalEntry;
 exports.deleteJournalEntry = deleteJournalEntry;
 exports.getJournalEntries = getJournalEntries;
 exports.payPlayer = payPlayer;
 exports.giveMoney = giveMoney;
 exports.spendMoney = spendMoney;
+exports.castSpell = castSpell;
+exports.deleteItem = deleteItem;
+exports.deleteSpell = deleteSpell;
+exports.createShop = createShop;
+exports.deleteShop = deleteShop;
+exports.getShop = getShop;
+exports.buyItem = buyItem;
+exports.damagePlayer = damagePlayer;

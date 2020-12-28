@@ -40,7 +40,13 @@ function parseDashedCommand(rawInput) {
     return ogString.slice(0, -1).split(" -");
 }
 
+function isImgurLink(imageURL) {
+    let pattern = /^https:\/\/(i.)?imgur.com\/\w{7}.(png|gif)$/;
+    return pattern.test(imageURL);
+}
+
 exports.removeReaction = removeReaction;
 exports.isHost = isHost;
 exports.getName = getName;
 exports.parseDashedCommand = parseDashedCommand;
+exports.isImgurLink = isImgurLink;

@@ -18,7 +18,7 @@ function _getCombatMenu() {
             {name: "`!roll <optional: dice size>`", value: "Rolls a requested sized dice. Defaults to 20.", inline: true},
             {name: "`!coinflip`", value: "Cant decide on what to do? Flip a coin!", inline: true}
         )
-        .setFooter("All commands are lowercase.")
+        .setFooter("All commands are lowercase.\nThis menu will timeout in 5 minutes.")
 }
 
 /**
@@ -41,7 +41,7 @@ function _getInventoryMenu() {
             {name: "`!add-note <entry name> <message>`", value: "Add something to your journal to help you remember!", inline: true},
             {name: "`!remove-note <entry name>`", value: "Scratch out an entry form your journal.", inline: true}
         )
-        .setFooter("All commands are lowercase.")
+        .setFooter("All commands are lowercase.\nThis menu will timeout in 5 minutes.")
 }
 
 /**
@@ -60,7 +60,7 @@ function _getInfoMenu() {
             {name: "`!spell <spell>`", value: "Gets info about the spell.", inline: true},
             {name: "`!class`", value: "Displays a UI for class info.", inline: true}
         )
-        .setFooter("All commands are lowercase.")
+        .setFooter("All commands are lowercase.\nThis menu will timeout in 5 minutes.")
 }
 
 function _getBaseHelpMenu() {
@@ -76,7 +76,7 @@ function _getBaseHelpMenu() {
             {name: "⚔️ Combat", value: "\u200b", inline: true},
             {name: "🕵️ Admin", value: "\u200b"}
         )
-        .setFooter("All commands are lowercase.")
+        .setFooter("All commands are lowercase.\nThis menu will timeout in 5 minutes.")
 }
 
 function _getAdminMenu() {
@@ -104,7 +104,7 @@ function _getAdminMenu() {
             {name: '`!remove-inv <#> <name>`', value: 'Reduce the players max-inventory.'},
             {name: '`!purge <#>`', value: 'Delete a certain # of messages in the chat.'}
         )
-        .setFooter("All commands are lowercase.")
+        .setFooter("All commands are lowercase.\nThis menu will timeout in 5 minutes.")
 }
 
 function generateBaseHelpMenu(msg) {
@@ -129,7 +129,7 @@ function generateBaseHelpMenu(msg) {
         }
 
         // Handle the reactions.
-        const collector = helpMenu.createReactionCollector(filter);
+        const collector = helpMenu.createReactionCollector(filter, {time: 300000});
         collector.on("collect", reaction => {
             switch (reaction.emoji.name) {
                 case "📋":

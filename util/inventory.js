@@ -20,28 +20,6 @@ function equip(playerName, authorName, gameObject, rawInput, msg) {
 }
 
 /**
- * Removes a single object from an array. This is needed because there can be
- * multiple of an object in an array.
- * @param {array} originalArray The array given.
- * @param {string} itemName The item to be removed from the array.
- */
-function removeItem(originalArray, itemName) {
-    //FIXME MAYBE REMOVE THIS METHOD.
-    let adjustedArray = [],
-        flag = true;
-
-    for (var i = 0; i < originalArray.length; i++) {
-        if (originalArray[i] === itemName && flag) {
-            flag = false;
-        } else {
-            adjustedArray.push(originalArray[i]);
-        }
-    }
-
-    return adjustedArray;
-}
-
-/**
  * Drops and item from the player inventory.
  * @param {string} itemName The name of the item to drop.
  * @param {object} msg The object containing information about the message sent through discord.
@@ -103,10 +81,7 @@ function transfer(playerName, gameObject, rawInput, msg) {
 }
 
 function upload(imageURL, playerName, gameName, msg) {
-    let pattern = /^https:\/\/(i.)?imgur.com\/\w{7}.(png|gif)$/;
-
-    if (!pattern.test(imageURL)) return error.error("This command only accepts imgur links. Please note that the link should end with a `.png` or `.gif` extension.", null, msg);
-
+    if (!ui.isImgurLink(imageURL)) return error.error("This command only accepts imgur links. Please note that the link should end with a `.png` or `.gif` extension.", null, msg);
     db.uploadImage(imageURL, playerName, gameName, msg);
 }
 
@@ -151,8 +126,42 @@ function pay(receiver, amount, playerName, gameObject, msg) {
     db.payPlayer(receiver, amount, playerName, gameObject.game_title, msg);
 }
 
+function giveItem(rawInput, gameObject, msg) {
+    let testForDash = 0;
+    rawInput.forEach(arg => {
+        if (arg.charAt(0) === "-") {
+            testForDash++;
+        }
+    });
+    if (testForDash < 2 || testForDash > 3) return error.error("Incorrect command format.", "Don't forget the `-` before the inputs.\n`!give-item -<player name> -<item name> -<#: optional>`", msg);
+
+    let parsedCommand = ui.parseDashedCommand(rawInput);
+    parsedCommand[2] = parsedCommand[2].replace(/ /g, "_").toLowerCase();
+
+    if (!isNaN(parsedCommand[2])) return error.error("What is the name of the item?", "Don't forget the `-` before the inputs.\n`!give-item -<player name> -<item name> -<#: optional>`", msg);
+    if (parsedCommand[3] && isNaN(parsedCommand[3])) return error.error("The last input is a numeric value.", "Don't forget the `-` before the inputs.\n`!give-item -<player name> -<item name> -<#: optional>`", msg);
+
+    db.giveItem(parsedCommand[1], gameObject, parsedCommand[2], Number(parsedCommand[3]), msg);
+}
+
+function giveSpell(rawInput, gameObject, msg) {
+    let testForDash = 0;
+    rawInput.forEach(arg => {
+        if (arg.charAt(0) === "-") {
+            testForDash++;
+        }
+    });
+    if (testForDash !== 2) return error.error("Incorrect command format.", "Don't forget the `-` before the inputs.\n`!give-spell -<player name> -<spell name>`", msg);
+
+    let parsedCommand = ui.parseDashedCommand(rawInput);
+    parsedCommand[2] = parsedCommand[2].replace(/ /g, "_").toLowerCase();
+
+    if (!isNaN(parsedCommand[2])) return error.error("What is the name of the spell?", "Don't forget the `-` before the inputs.\n`!give-spell -<player name> -<spell name>`", msg);
+
+    db.giveSpell(parsedCommand[1], gameObject, parsedCommand[2], msg);
+}
+
 exports.drop = drop;
-exports.removeItem = removeItem;
 exports.equip = equip;
 exports.transfer = transfer;
 exports.upload = upload;
@@ -160,3 +169,5 @@ exports.addNote = addNote;
 exports.removeNote = removeNote;
 exports.getJournal = getJournal;
 exports.pay = pay;
+exports.giveItem = giveItem;
+exports.giveSpell = giveSpell;

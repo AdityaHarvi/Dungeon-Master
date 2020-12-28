@@ -2,7 +2,7 @@ const Discord = require("discord.js"),
     dice = require("../util/dice"),
     ui = require("../util/UImethods"),
     db = require("../databaseHandler/dbHandler"),
-    error = require('../util/error');
+    error = require("../util/error");
 
 /**
  * Displays the journal as a private message to the player.
@@ -32,39 +32,38 @@ function displayJournal(journalInfo, playerName, msg) {
     msg.react("✅");
 }
 
-function getSpellCastFields(playerInfo, spellInfo, extraInfo) {
-    let fields = [];
-
-    fields[0] = {name: `Remaining Mana: ${playerInfo.mana}`, value: `Spell Cost: ${spellInfo.mana}`};
-
-    if (spellInfo.damage && spellInfo.diceSize) {
-        fields[1] = {name: `Total Damage Dealt: \`${extraInfo.damage}\``, value: `${(extraInfo.extraRoll) ? `D10 (${extraInfo.extraRoll}) + ` : ''}D${spellInfo.diceSize} (${extraInfo.roll}) + ${spellInfo.damage} ${(extraInfo.specialAbility) ? '+ 1' : '' }`, inline: true};
-    } else if (spellInfo.damage) {
-        fields[1] = {name: `Total Damage Dealt: \`${spellInfo.damage}\``, value: `${(extraInfo.extraRoll) ? `D10 (${extraInfo.extraRoll}) + ` : '\u200b'}`};
-    } else if (spellInfo.heal) {
-        fields[1] = {name: `${playerInfo.name} healed ${extraInfo.target.name} for \`${spellInfo.heal}\` HP`, value: `${(extraInfo.extraRoll) ? `D10 Roll: ${extraInfo.extraRoll}` : '\u200b'}`, inline:true};
+function castInfo(playerInfo, spellInfo, amount, roll, enemyArmor, enemyName, msg) {
+    let nameString = "\u200b";
+    let valueString = "\u200b";
+    if (spellInfo.bonus_roll) valueString += `Roll: D${spellInfo.bonus_roll} (${roll})\n`;
+    if (spellInfo.type === "attack") {
+        nameString = `Total Damage Dealt with ${spellInfo.spell_name}: \`${amount}\``;
+        valueString += `Spell Damage: ${spellInfo.damage}\nEnemy Armor: ${enemyArmor}\nBonus Spell Damage: ${playerInfo.bonusSpell}`;
+        if (spellInfo.bonus_roll) {
+            valueString += `\n\`Calculation: ${roll} + ${spellInfo.damage} - ${enemyArmor} + ${playerInfo.bonusSpell}\``;
+        } else {
+            valueString += `\n\`Calculation: ${spellInfo.damage} - ${enemyArmor} + ${playerInfo.bonusSpell}\``;
+        }
+    } else if (spellInfo.type === "healing") {
+        nameString = `Total Healing with ${spellInfo.spell_name}: \`${amount}\``;
+        valueString += `Spell Healing: ${spellInfo.healing}\nBonus Healing: ${playerInfo.bonusHealing}`;
+        if (spellInfo.bonus_roll) {
+            valueString += `\n\`Calculation: ${roll} + ${spellInfo.healing} + ${playerInfo.bonusHealing}\``;
+        } else {
+            valueString += `\n\`Calculation: ${spellInfo.healing} + ${playerInfo.bonusHealing}\``;
+        }
     }
 
-    if (extraInfo.extraRoll) {
-        fields[2] = {name: '\u200b', value: `Ability Activated: \`${extraInfo.specialAbility2}\``, inline: true};
-    }
+    let spellEmbed = new Discord.MessageEmbed()
+        .setColor("0xfc03b1")
+        .setTitle(`${playerInfo.username} casts ${spellInfo.spell_name} on ${enemyName}`)
+        .setThumbnail(spellInfo.image)
+        .addFields(
+            {name: nameString, value: valueString}
+        );
 
-    return fields;
+    return msg.channel.send(spellEmbed);
 }
-
-function displaySpellCast(playerInfo, spellInfo, extraInfo, msg) {
-    const spellCastEmbed = {
-        color: 0xfc03b1,
-        title: `${playerInfo.name} cast's ${spellInfo.name}`,
-        thumbnail: {
-            url: spellInfo.image
-        },
-        fields: getSpellCastFields(playerInfo, spellInfo, extraInfo)
-    };
-
-    return msg.channel.send({embed: spellCastEmbed});
-}
-
 
 function attackInfo(playerInfo, itemInfo, damageRoll, msg) {
     let attackEmbed = new Discord.MessageEmbed()
@@ -72,7 +71,7 @@ function attackInfo(playerInfo, itemInfo, damageRoll, msg) {
         .setTitle(`${playerInfo.username} overcomes the enemy's armor!`)
         .setThumbnail(itemInfo.image)
         .addFields(
-            {name: `Total Damage Dealt with ${itemInfo.item_name}: \`${damageRoll}\``, value: `D${itemInfo.damage_dice} (${damageRoll})`}
+            {name: `Total Damage Dealt: \`${damageRoll}\``, value: `D${itemInfo.damage_dice} (${damageRoll})`}
         );
 
     msg.channel.send(attackEmbed);
@@ -139,7 +138,7 @@ function _parsePlayerItems(playerInfo) {
 function _parsePlayerSpells(playerInfo) {
     playerInfo.spellList = [];
 
-    if (playerInfo.spellList.length === 0) {
+    if (playerInfo.spells.length === 0) {
         playerInfo.spellList = "None";
     } else {
         playerInfo.spells.forEach(spellInfo => {
@@ -162,11 +161,8 @@ function playerInfo(playerName, gameObject, msg) {
 
     db.getFullPlayerInfo(playerName, gameObject.game_title, msg, playerInfo => {
         if (!playerInfo) return;
-        db.getItemInfo(playerInfo.weapon, msg, weaponInfo => {
-            if (!weaponInfo) return;
-            db.getItemInfo(playerInfo.clothing, msg, clothingInfo => {
-                if (!clothingInfo) return;
-
+        db.getItemInfo(playerInfo.weapon, false, msg, weaponInfo => {
+            db.getItemInfo(playerInfo.clothing, false, msg, clothingInfo => {
                 playerInfo = _parsePlayerItems(playerInfo);
                 playerInfo = _parsePlayerSpells(playerInfo);
 
@@ -179,7 +175,7 @@ function playerInfo(playerName, gameObject, msg) {
 
 function diceRoll(diceSize=20, gameName, msg) {
     db.getBaiscPlayerInfo(msg.author.username, gameName, msg, playerInfo => {
-        let imageURL = "";
+        let imageURL = "https://imgur.com/JYyQ1Xd.png";
         let footerText = " ";
         let luck = false;
 
@@ -188,8 +184,6 @@ function diceRoll(diceSize=20, gameName, msg) {
             imageURL = "https://imgur.com/YV7Amj7.png";
         } else if (roll === 1) {
             imageURL = "https://i.imgur.com/4EAe8y6.png";
-        } else {
-            imageURL = "https://imgur.com/JYyQ1Xd.png";
         }
 
         let finalRoll = roll + playerInfo.luck;
@@ -238,18 +232,19 @@ function _getGameObjectEmbed(inventoryObject) {
  */
 function itemInfo(rawInput, msg) {
     let itemName = ui.getName(rawInput);
-    db.getItemInfo(itemName, msg, itemInfo => {
-        if (itemInfo) {
-            itemInfo.name = itemInfo.item_name;
-            itemInfo.color = 0x7734eb;
-            itemInfo.header = `${itemInfo.weapon ? "🗡️" : "🥼"} ${itemInfo.equipable ? "Equipable" : "Consumable"}`;
-            itemInfo.footer = `${itemInfo.equipable ? `!equip ${itemName}` : `!use ${itemName}`}`;
-            itemInfo.bonusHeader = "Bonuses:"
-            itemInfo.bonuses = _getItemBonus(itemInfo);
+    db.getItemInfo(itemName, false, msg, itemInfo => {
+        itemInfo.name = itemInfo.item_name;
+        itemInfo.color = 0x7734eb;
+        itemInfo.header = "";
+        if (itemInfo.weapon && itemInfo.equipable) itemInfo.header += "🗡️ Equipable";
+        if (!itemInfo.weapon && itemInfo.equipable) itemInfo.header += "🥼 Equipable";
+        if (itemInfo.consumable) itemInfo.header += "🍞 Consumable";
+        itemInfo.footer = `${itemInfo.equipable ? `!equip ${itemName}` : `!use ${itemName}`}`;
+        itemInfo.bonusHeader = "Bonuses:"
+        itemInfo.bonuses = _getItemBonus(itemInfo);
 
-            const itemInfoEmbed = _getGameObjectEmbed(itemInfo);
-            msg.channel.send(itemInfoEmbed);
-        }
+        const itemInfoEmbed = _getGameObjectEmbed(itemInfo);
+        msg.channel.send(itemInfoEmbed);
     });
 }
 
@@ -260,18 +255,24 @@ function itemInfo(rawInput, msg) {
  */
 function spellInfo(rawInput, msg) {
     let spellName = ui.getName(rawInput);
-    db.getSpellInfo(spellName, msg, spellInfo => {
-        if (spellInfo) {
-            spellInfo.name = spellInfo.spell_name;
-            spellInfo.color = 0x34ebab;
-            spellInfo.header = `Mana Cost: ${spellInfo.mana}`;
-            spellInfo.footer = `!cast ${spellName}`;
-            spellInfo.bonusHeader = "\u200b";
-            spellInfo.bonuses = "\u200b";
-
-            const spellInfoEmbed = _getGameObjectEmbed(spellInfo);
-            msg.channel.send(spellInfoEmbed);
+    db.getSpellInfo(spellName, false, msg, spellInfo => {
+        spellInfo.name = spellInfo.spell_name;
+        spellInfo.color = 0x34ebab;
+        spellInfo.header = `Mana Cost: ${spellInfo.mana}`;
+        spellInfo.footer = `!cast ${spellName}`;
+        if (spellInfo.type === "attack") {
+            spellInfo.bonusHeader = "☠️ Attack Spell";
+            spellInfo.bonuses = `Deals ${spellInfo.damage} damage\n${(spellInfo.bonus_roll) ? `+ D(${spellInfo.bonus_roll})` : ""}`;
+        } else if (spellInfo.type === "attack") {
+            spellInfo.bonusHeader = "👼🏼 Healing Spell";
+            spellInfo.bonuses = `Heals ${spellInfo.healing} health\n${(spellInfo.bonus_roll) ? `+ D(${spellInfo.bonus_roll})` : ""}`;
+        } else {
+            spellInfo.bonusHeader = "🪄 Misc Spell";
+            spellInfo.bonuses = `${(spellInfo.bonus_roll) ? `Roll a D(${spellInfo.bonus_roll})` : "\u200b"}`;
         }
+
+        const spellInfoEmbed = _getGameObjectEmbed(spellInfo);
+        msg.channel.send(spellInfoEmbed);
     });
 }
 
@@ -446,3 +447,4 @@ exports.playerInfo = playerInfo;
 exports.diceRoll = diceRoll;
 exports.attackInfo = attackInfo;
 exports.displayJournal = displayJournal;
+exports.castInfo = castInfo;
