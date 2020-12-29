@@ -346,10 +346,20 @@ client.on('message', msg => {
                 error.error("What is the player name?", "`!view-info <player name>`", msg);
             break;
         case "a-attack":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            (args[1]) ?
+                combat.adminMelee(args, activeGameObject.players, activeGameObject.game_title, msg) :
+                error.error("No arguments given.", "`!a-attack -<player name to control> -<player name to attack>`", msg);
             break;
         case "a-equip":
             break;
         case "a-cast":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            (args[1]) ?
+                combat.adminCast(args, activeGameObject.players, activeGameObject, msg) :
+                error.error("No arguments given.", "`!a-cast -<player name to control> -<spell name> -<target name: optional>`", msg);
             break;
         // case "play":
         //     if (!_errorChecksPass(activeGameObject, msg)) return;

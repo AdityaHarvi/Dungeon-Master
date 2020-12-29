@@ -21,7 +21,7 @@ function melee(enemyName, playerName, gameName, msg) {
 
             db.getItemInfo(playerInfo.weapon, false, msg, itemInfo => {
                 let damageRoll = dice.roll(itemInfo.damage_dice);
-                db.damagePlayer(playerName, gameName, damageRoll, msg);
+                db.damagePlayer(enemyName, gameName, "health", damageRoll, msg);
                 display.attackInfo(playerInfo, enemyName, itemInfo, damageRoll, msg);
             });
         });
@@ -92,7 +92,39 @@ function cast(rawInput, playerName, gameObject, msg) {
     });
 }
 
+function adminMelee(rawInput, playerList, gameName, msg) {
+    if (ui.dashAmount(rawInput) !== 2)
+        return error.error("This command takes exactly 2 inputs.", "`!a-attack -<player name to control> -<player name to attack>`", msg);
+
+    let parsedCommand = ui.parseDashedCommand(rawInput);
+    if (!playerList.includes(parsedCommand[1]))
+        return error.error(`Was not able to find ${parsedCommand[1]}`, null, msg);
+    if (!playerList.includes(parsedCommand[2]))
+        return error.error(`Was not able to find ${parsedCommand[2]}`, null, msg);
+
+    melee(parsedCommand[2], parsedCommand[1], gameName, msg);
+}
+
+function adminCast(rawInput, playerList, gameObject, msg) {
+    let dashAmount = ui.dashAmount(rawInput);
+    if (dashAmount < 2 || dashAmount > 3)
+        return error.error("This command takes up to 3 inputs.", "`!a-cast -<player name to control> -<spell name> -<target name: optional>`", msg);
+
+    let parsedCommand = ui.parseDashedCommand(rawInput);
+    parsedCommand[2] = parsedCommand[2].replace(/ /g, "_").toLowerCase();
+
+    if (!playerList.includes(parsedCommand[1]))
+        return error.error(`Was not able to find ${parsedCommand[1]}`, null, msg);
+    if (parsedCommand[3] && !playerList.includes(parsedCommand[3]))
+        return error.error(`Was not able to find ${parsedCommand[3]}`, null, msg);
+
+    rawInput.splice(1,1);
+    cast(rawInput, parsedCommand[1], gameObject, msg);
+}
+
 exports.melee = melee;
 exports.bleed = bleed;
 exports.use = use;
 exports.cast = cast;
+exports.adminMelee = adminMelee;
+exports.adminCast = adminCast;
