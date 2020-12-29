@@ -10,11 +10,11 @@ const error = require("../util/error"),
  * @param {object} msg Contains information about the command sent by the player through discord.
  */
 function melee(enemyName, playerName, gameName, msg) {
-    db.getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+    db.getBasicPlayerInfo(playerName, gameName, msg, playerInfo => {
         let roll = dice.roll();
         let attackRoll = roll + playerInfo.strength;
 
-        db.getBaiscPlayerInfo(enemyName, gameName, msg, enemyInfo => {
+        db.getBasicPlayerInfo(enemyName, gameName, msg, enemyInfo => {
             if (attackRoll < enemyInfo.armor) {
                 return error.error(`Your attack-roll of \`${attackRoll}\` was not enough to overcome ${enemyName}'s armor-class of \`${enemyInfo.armor}\`.`, `D20 (${roll}) + ${playerInfo.strength}`, msg);
             }
@@ -29,7 +29,7 @@ function melee(enemyName, playerName, gameName, msg) {
 }
 
 function bleed(bleedAmount, playerName, gameName, msg) {
-    db.getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+    db.getBasicPlayerInfo(playerName, gameName, msg, playerInfo => {
         if (playerInfo.mana === playerInfo.maxMana) {
             return error.error("You're already at max mana.", null, msg);
         } else if ((playerInfo.mana + bleedAmount) > playerInfo.maxMana) {

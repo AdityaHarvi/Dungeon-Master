@@ -20,9 +20,9 @@ function _getGameStartupEmbed(gameObject, acceptedList = "-", declinedList = "-"
 
     return new Discord.MessageEmbed()
         .setColor("0xb04360")
-        .setTitle("New Campaign: " + gameObject.game_title)
+        .setTitle(`New Campaign: ${gameObject.game_title}`)
         .setAuthor("Dungeon Master", "https://i.imgur.com/MivKiKL.png")
-        .setDescription("Hosted By: " + gameObject.host)
+        .setDescription(`Description: ${gameObject.description}\n\n**Hosted By: ${gameObject.host}**`)
         .addFields(
             {name: "✅ Accepted", value: acceptedList, inline: true},
             {name: "❌ Declined", value: declinedList, inline: true}
@@ -198,10 +198,11 @@ function _setRoles(gameObject, client, msg, callback) {
  * @param {object} client The bot / client.
  * @param {object} msg Contains information about the command sent by the player through discord.
  */
-function _generateCreationUI(gameName, msg) {
+function _generateCreationUI(gameName, gameDescription, msg) {
     let gameObject = {};
 
     gameObject.game_title = gameName;
+    gameObject.description = gameDescription;
     gameObject.host = msg.member.user.username;
     gameObject.players = ["Laggy"];
     gameObject.declined = [];
@@ -297,7 +298,12 @@ function _generateCreationUI(gameName, msg) {
  * @param {object} msg Contains information about the command sent by the player through discord.
  */
 function setupGame(rawInput, msg) {
-    let gameName = ui.getName(rawInput);
+    if (ui.dashAmount(rawInput) !== 2)
+        return error.error("This command takes in 2 inputs.", "`!create -<Campaign Name> -<Description>`", msg);
+
+    let parsedCommand = ui.parseDashedCommand(rawInput);
+    let gameName = parsedCommand[1].replace(/ /g, "_").toLowerCase();
+    let gameDescription = parsedCommand[2];
 
     db.getGameInfo(gameName, gameObject => {
         if (gameObject) {
@@ -309,7 +315,7 @@ function setupGame(rawInput, msg) {
                 return error.error(`Campaign \`${isActive.game_title}\` is currently active.`, `Notify ${isActive.host} to \`!pause ${isActive.game_title}\` or \`!end ${isActive.game_title}\`.`, msg);
             }
 
-            _generateCreationUI(gameName, msg);
+            _generateCreationUI(gameName, gameDescription, msg);
         });
     })
 }

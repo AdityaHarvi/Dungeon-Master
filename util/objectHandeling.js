@@ -2,6 +2,7 @@ const Discord = require("discord.js"),
     ui = require("./UImethods"),
     error = require("./error"),
     db = require("../databaseHandler/dbHandler");
+const { play } = require("./music");
 
 const page = {
     DICE_SELECTION: "damage_dice",
@@ -635,8 +636,10 @@ function openShop(rawInput, gameObject, msg) {
                     fields[index++] = {name: `${emojiValue[index - 1]}: 🗡️ ${itemInfo.item_name}`, value:`:coin: ${nameAndPrice[1]}`, inline: true};
                 } else if (!itemInfo.weapon && itemInfo.equipable) {
                     fields[index++] = {name: `${emojiValue[index - 1]}: 🥼 ${itemInfo.item_name}`, value:`:coin: ${nameAndPrice[1]}`, inline: true};
-                } else {
+                } else if (itemInfo.consumable) {
                     fields[index++] = {name: `${emojiValue[index - 1]}: 🍞 ${itemInfo.item_name}`, value:`:coin: ${nameAndPrice[1]}`, inline: true};
+                } else {
+                    fields[index++] = {name: `${emojiValue[index - 1]}: 🪨 ${itemInfo.item_name}`, value:`:coin: ${nameAndPrice[1]}`, inline: true};
                 }
 
                 // Once all item information is read, we can generate the UI.
@@ -648,6 +651,106 @@ function openShop(rawInput, gameObject, msg) {
     });
 }
 
+function bot(rawInput, gameObject, msg) {
+    if (ui.dashAmount(rawInput) !== 7)
+        return error.error("Improper number of inputs.", "`!make-bot -<bot name> -<health amount> -<strength amount> -<armor amount> -<weapon dice size> -<bonus healing power> -<bonus spell damage>`", msg);
+
+    let parsedCommand = ui.parseDashedCommand(rawInput);
+    parsedCommand[1] = parsedCommand[1].toLowerCase();
+    if (!isNaN(parsedCommand[1]))
+        return error.error("The name of the bot should not only consist of numbers.", "`!make-bot -<bot name> -<health amount> -<strength amount> -<armor amount> -<weapon dice size> -<bonus healing power> -<bonus spell damage>`", msg);
+
+    // Validate if all the args are proper.
+    let inputsPass = true;
+    parsedCommand.slice(2,parsedCommand.length).forEach(arg => {
+        if (isNaN(arg)) {
+            error.error("Every input after the first should be a number!", "`!make-bot -<bot name> -<health amount> -<strength amount> -<armor amount> -<weapon dice size> -<bonus healing power> -<bonus spell damage>`", msg);
+            inputsPass = false;
+        }
+    });
+    if (!inputsPass) return;
+
+    if (gameObject.players.includes(parsedCommand[1]) || parsedCommand[1].includes("|"))
+        return error.error("Error with the bot name.", "Try changing the name so its unique and does not contain the `|` character.", msg);
+
+    let playerObject = {};
+    playerObject.game = gameObject.game_title;
+    playerObject.username = parsedCommand[1];
+    playerObject.image = null;
+    playerObject.isBot = 1;
+    playerObject.spells = [];
+    playerObject.items = [`${parsedCommand[1]}_weapon`, `${parsedCommand[1]}_clothing`];
+    playerObject.weapon = `${parsedCommand[1]}_weapon`;
+    playerObject.clothing = `${parsedCommand[1]}_clothing`;
+    playerObject.journal = [];
+    playerObject.maxInventory = 50;
+    playerObject.armor = parsedCommand[4];
+    playerObject.bonusSpell = 0;
+    playerObject.bonusHealing = 0;
+    playerObject.luck = 0;
+    playerObject.money = 0;
+    playerObject.strength = parsedCommand[3];
+    playerObject.health = parsedCommand[2];
+    playerObject.maxHealth = parsedCommand[2];
+    playerObject.mana = 1000;
+    playerObject.maxMana = 1000;
+    playerObject.class = "Bot";
+
+    let weaponObj = {};
+    weaponObj.item_name = `${parsedCommand[1]}_weapon`;
+    weaponObj.equipable = 1;
+    weaponObj.consumable = 0;
+    weaponObj.description = `The main weapon for ${parsedCommand[1]}`;
+    weaponObj.image = "https://imgur.com/3LkSZR8.png";
+    weaponObj.damage_dice = parsedCommand[5];
+    weaponObj.weapon = 1;
+    weaponObj.bonusHealth = 0;
+    weaponObj.bonusStrength = 0;
+    weaponObj.bonusMana = 0;
+    weaponObj.bonusArmor = 0;
+    weaponObj.bonusSpell = 0;
+    weaponObj.bonusHealing = 0;
+    weaponObj.bonusLuck = 0;
+    weaponObj.bonusInventory = 0;
+    weaponObj.bonusMoney= 0;
+
+    let clothingObj = {};
+    clothingObj.item_name = `${parsedCommand[1]}_clothing`;
+    clothingObj.equipable = 1;
+    clothingObj.consumable = 0;
+    clothingObj.description = `The main clothing for ${parsedCommand[1]}`;
+    clothingObj.image = "https://imgur.com/nu9lnIq.png";
+    clothingObj.damage_dice = 0;
+    clothingObj.weapon = 0;
+    clothingObj.bonusHealth = 0;
+    clothingObj.bonusStrength = 0;
+    clothingObj.bonusMana = 0;
+    clothingObj.bonusArmor = 0;
+    clothingObj.bonusSpell = 0;
+    clothingObj.bonusHealing = 0;
+    clothingObj.bonusLuck = 0;
+    clothingObj.bonusInventory = 0;
+    clothingObj.bonusMoney= 0;
+
+    db.newItem(itemObject);
+    db.newItem(clothingObj);
+    db.addPlayer(playerObject);
+    gameObject.players.push(parsedCommand[1]);
+    db.updateGamePlayerList(gameObject.game_title, gameObject.players);
+    msg.react("✅");
+}
+
+function deleteBot(rawInput, playerList, gameName, msg) {
+    let botName = ui.getName(rawInput);
+    if (!playerList.includes(botName))
+        return error.error("There is no bot with that name currently in the game.", "Bots are automatically delete upon death.", msg);
+
+    const indexOfBot = playerList.indexOf(botName);
+    playerList.splice(indexOfBot, 1);
+    db.deletePlayer(botName, gameName);
+    msg.react("✅");
+}
+
 exports.items = items;
 exports.deleteItem = deleteItem;
 exports.spells = spells;
@@ -655,3 +758,5 @@ exports.deleteSpells = deleteSpells;
 exports.shop = shop;
 exports.deleteShop = deleteShop;
 exports.openShop = openShop;
+exports.bot = bot;
+exports.deleteBot = deleteBot;

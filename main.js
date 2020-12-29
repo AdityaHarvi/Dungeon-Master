@@ -11,7 +11,6 @@ const Discord = require("discord.js"),
     combat = require("./util/combat"),
     dice = require("./util/dice"),
     make = require("./util/objectHandeling"),
-    adminModifyInventory = require('./admin/modifyInventory'),
     adminModifyStats = require('./admin/modifyStats'),
     ally = require('./admin/ally'),
     ui = require("./util/UImethods"),
@@ -103,7 +102,7 @@ client.on('message', msg => {
         case "create":
             (args[1]) ?
                 gameHandler.setupGame(args, msg) :
-                error.error("What is the campaign name?", "`!create <Campaign Name>`", msg);
+                error.error("What is the campaign name & description?", "`!create -<Campaign Name> -<Description>`\n Don't forget the `-` before the name and description.", msg);
             break;
         case "pause-game":
             (args[1]) ?
@@ -270,8 +269,18 @@ client.on('message', msg => {
                 error.error("What is the shop name?", "`!unlock <shop name>`", msg);
             break;
         case "make-bot":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            (args[1]) ?
+                make.bot(args, activeGameObject, msg) :
+                error.error("Missing some inputs.", "This command requires 7 inputs. Please take note of the \`-\`'s.\n`!make-bot -<bot name> -<health amount> -<strength amount> -<armor amount> -<weapon dice size> -<bonus healing power> -<bonus spell damage>`", msg);
             break;
-        case "delete-bot":
+        case "del-bot":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            (args[1]) ?
+                make.deleteBot(args, activeGameObject.players, activeGameObject.game_title, msg) :
+                error.error("What is the name of the bot you want to delete.", "`!del-bot <bot name>`", msg);
             break;
         case "give-spell":
             if (!_errorChecksPass(activeGameObject, msg)) return;
@@ -335,6 +344,12 @@ client.on('message', msg => {
             (args[1]) ?
                 display.playerInfo(args[1], activeGameObject, msg) :
                 error.error("What is the player name?", "`!view-info <player name>`", msg);
+            break;
+        case "a-attack":
+            break;
+        case "a-equip":
+            break;
+        case "a-cast":
             break;
         // case "play":
         //     if (!_errorChecksPass(activeGameObject, msg)) return;

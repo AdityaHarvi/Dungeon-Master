@@ -178,7 +178,7 @@ function playerInfo(playerName, gameObject, msg) {
 }
 
 function diceRoll(diceSize=20, gameName, msg) {
-    db.getBaiscPlayerInfo(msg.author.username, gameName, msg, playerInfo => {
+    db.getBasicPlayerInfo(msg.author.username, gameName, msg, playerInfo => {
         let imageURL = "https://imgur.com/JYyQ1Xd.png";
         let footerText = " ";
         let luck = false;

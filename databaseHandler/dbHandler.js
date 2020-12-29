@@ -12,6 +12,7 @@ function createDB() {
     db.run(
         `CREATE TABLE IF NOT EXISTS game (
             game_title TEXT NOT NULL,
+            description TEXT,
             host TEXT,
             players TEXT,
             declined TEXT,
@@ -366,8 +367,8 @@ function getShop(shopName, gameName, alwaysReturn, msg, callback) {
 function castSpell(targetName, playerName, gameName, spellName, msg) {
     _checkIfPlayerHasSpell(playerName, gameName, spellName, msg, hasSpell => {
         getSpellInfo(spellName, false, msg, spellInfo => {
-            getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
-                getBaiscPlayerInfo(targetName, gameName, msg, targetInfo => {
+            getBasicPlayerInfo(playerName, gameName, msg, playerInfo => {
+                getBasicPlayerInfo(targetName, gameName, msg, targetInfo => {
                     if (playerInfo.mana < spellInfo.mana_cost) {
                         return error.error("Not enough mana.", `Need \`${spellInfo.mana_cost - playerInfo.mana}\` more mana.`, msg);
                     }
@@ -400,7 +401,7 @@ function castSpell(targetName, playerName, gameName, spellName, msg) {
 }
 
 function damagePlayer(playerName, gameName, stat, amount, msg, callback) {
-    getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+    getBasicPlayerInfo(playerName, gameName, msg, playerInfo => {
         let db = new sqlite3.Database("dungeon.db", err => {
             if (err) {
                 console.log(err.message);
@@ -436,12 +437,20 @@ function damagePlayer(playerName, gameName, stat, amount, msg, callback) {
             }
         );
 
+        if (playerInfo.isBot && playerInfo.health === 0) {
+            getActiveGame(gameInfo => {
+                const indexOfBot = gameInfo.players.indexOf(playerName);
+                gameInfo.players.splice(indexOfBot, 1);
+                db.deletePlayer(playerName, gameName);
+            });
+        }
+
         db.close();
     });
 }
 
 function healPlayer(playerName, gameName, stat, amount, msg, callback) {
-    getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+    getBasicPlayerInfo(playerName, gameName, msg, playerInfo => {
         let db = new sqlite3.Database("dungeon.db", err => {
             if (err) {
                 console.log(err.message);
@@ -476,7 +485,7 @@ function healPlayer(playerName, gameName, stat, amount, msg, callback) {
 }
 
 function setMaxStat(playerName, gameName, stat, amount, msg, callback) {
-    getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+    getBasicPlayerInfo(playerName, gameName, msg, playerInfo => {
         let db = new sqlite3.Database("dungeon.db", err => {
             if (err) {
                 console.log(err.message);
@@ -513,7 +522,7 @@ function setMaxStat(playerName, gameName, stat, amount, msg, callback) {
 }
 
 function uploadImage(link, playerName, gameName, msg) {
-    getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+    getBasicPlayerInfo(playerName, gameName, msg, playerInfo => {
         let db = new sqlite3.Database("dungeon.db", err => {
             if (err) {
                 console.log(err.message);
@@ -639,7 +648,7 @@ function bleedPlayer(healthDecrease, manaIncrease, playerName, gameName, callbac
 
 function useItem(itemName, playerName, gameName, msg) {
     _checkIfPlayerHasItem(playerName, gameName, itemName, msg, itemInfo => {
-        getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+        getBasicPlayerInfo(playerName, gameName, msg, playerInfo => {
             itemInfo.quantity -= 1;
             let deleteItem = (itemInfo.quantity <= 0) ? true : false;
             getItemInfo(itemName, false, msg, fullItemInfo => {
@@ -723,7 +732,7 @@ function useItem(itemName, playerName, gameName, msg) {
 
 function equipItem(playerName, gameName, itemName, msg) {
     _checkIfPlayerHasItem(playerName, gameName, itemName, msg, hasItem => {
-        getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+        getBasicPlayerInfo(playerName, gameName, msg, playerInfo => {
             // Get the to-be equiped item information.
             getItemInfo(itemName, false, msg, itemInfo => {
                 if (!itemInfo.equipable) {
@@ -888,7 +897,7 @@ function payPlayer(receiver, amount, playerName, gameName, msg) {
 }
 
 function spendMoney(playerName, gameName, quantity, msg, callback) {
-    getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+    getBasicPlayerInfo(playerName, gameName, msg, playerInfo => {
         if (quantity > playerInfo.money) {
             return error.error(`${playerName} does not enough money.`, `Short ${quantity - playerInfo.money} :coin:.`, msg);
         }
@@ -936,7 +945,7 @@ function buyItem(playerName, gameObject, itemName, price, msg) {
 }
 
 function giveMoney(playerName, gameName, quantity, msg) {
-    getBaiscPlayerInfo(playerName, gameName, msg, playerInfo => {
+    getBasicPlayerInfo(playerName, gameName, msg, playerInfo => {
         let db = new sqlite3.Database("dungeon.db", err => {
             if (err) {
                 console.log(err.message);
@@ -1018,7 +1027,7 @@ function _checkIfPlayerHasSpell(playerName, gameName, spellName, msg, callback) 
 }
 
 function getFullPlayerInfo(playerName, gameName, msg, callback) {
-    getBaiscPlayerInfo(playerName, gameName, msg, info => {
+    getBasicPlayerInfo(playerName, gameName, msg, info => {
         getPlayerItems(playerName, gameName, items => {
             getPlayerSpells(playerName, gameName, spells => {
                 let playerInfo = info;
@@ -1030,7 +1039,7 @@ function getFullPlayerInfo(playerName, gameName, msg, callback) {
     });
 }
 
-function getBaiscPlayerInfo(playerName, gameName, msg, callback) {
+function getBasicPlayerInfo(playerName, gameName, msg, callback) {
     let db = new sqlite3.Database("dungeon.db", err => {
         if (err) {
             console.log(err.message);
@@ -1226,7 +1235,7 @@ function giveItem(playerName, gameObject, itemName, quantity=1, msg, callback) {
 }
 
 function giveSpell(playerName, gameObject, spellName, msg) {
-    getBaiscPlayerInfo(playerName, gameObject.game_title, msg, playerInfo => {
+    getBasicPlayerInfo(playerName, gameObject.game_title, msg, playerInfo => {
         getSpellInfo(spellName, false, msg, spellInfo => {
             let db = new sqlite3.Database("dungeon.db", err => {
                 if (err) {
@@ -1257,7 +1266,7 @@ function giveSpell(playerName, gameObject, spellName, msg) {
 }
 
 function takeSpell(playerName, gameObject, spellName, msg) {
-    getBaiscPlayerInfo(playerName, gameObject.game_title, msg, playerInfo => {
+    getBasicPlayerInfo(playerName, gameObject.game_title, msg, playerInfo => {
         _checkIfPlayerHasSpell(playerName, gameObject.game_title, spellName, msg, playerSpell => {
             let db = new sqlite3.Database("dungeon.db", err => {
                 if (err) {
@@ -1333,6 +1342,54 @@ function addPlayer(po) {
     db.close();
 }
 
+function deletePlayer(playerName, gameName, newPlayerList) {
+    let db = new sqlite3.Database("dungeon.db", err => {
+        if (err) {
+            console.log(err.message);
+            return;
+        }
+    });
+
+    db.run(
+        `DELETE FROM player
+        WHERE username = ?
+        AND game_title = ?;`,
+        [playerName, gameName]
+    );
+
+    db.run(
+        `DELETE FROM player_items
+        WHERE username = ?
+        AND game_title = ?;`,
+        [playerName, gameName]
+    );
+
+    db.run(
+        `DELETE FROM player_spells
+        WHERE username = ?
+        AND game_title = ?;`,
+        [playerName, gameName]
+    );
+
+    let weaponName = `${playerName}_weapon`;
+    let clothingName = `${playerName}_clothing`;
+    db.run(
+        `DELETE FROM items
+        WHERE item_name = ?;`,
+        [weaponName]
+    );
+
+    db.run(
+        `DELETE FROM items
+        WHERE item_name = ?;`,
+        [clothingName]
+    );
+
+    updateGamePlayerList(gameName, newPlayerList);
+
+    db.close();
+}
+
 function getGameInfo(gameName, callback) {
     let db = new sqlite3.Database("dungeon.db", err => {
         if (err) {
@@ -1376,6 +1433,7 @@ function insertGame(gameObject) {
     db.run(
         `INSERT INTO game VALUES (
             :game_title,
+            :description,
             :host,
             :players,
             :declined,
@@ -1385,10 +1443,30 @@ function insertGame(gameObject) {
             :archived,
             :activeGame
         );`,
-        [gameObject.game_title, gameObject.host, playerList, declinedList, gameObject.hostChannel, gameObject.playerChannel, gameObject.gameCategory, gameObject.archived, gameObject.activeGame]
+        [gameObject.game_title, gameObject.description, gameObject.host, playerList, declinedList, gameObject.hostChannel, gameObject.playerChannel, gameObject.gameCategory, gameObject.archived, gameObject.activeGame]
     );
 
     setActive.setActiveGameObject(gameObject);
+
+    db.close();
+}
+
+function updateGamePlayerList(gameName, newPlayerList) {
+    let db = new sqlite3.Database("dungeon.db", err => {
+        if (err) {
+            console.log(err.message);
+            return;
+        }
+    });
+
+    playerList = _stringToArray(newPlayerList);
+
+    db.run(
+        `UPDATE game
+        SET players = ?
+        WHERE game_title = ?;`,
+        [playerList, gameName]
+    );
 
     db.close();
 }
@@ -1601,14 +1679,16 @@ exports.deleteGame = deleteGame;
 exports.archiveGame = archiveGame;
 exports.pauseGame = pauseGame;
 exports.playGame = playGame;
+exports.updateGamePlayerList = updateGamePlayerList;
 exports.addPlayer = addPlayer;
+exports.deletePlayer = deletePlayer;
 exports.newItem = newItem;
 exports.newSpell = newSpell;
 exports.giveItem = giveItem;
 exports.giveSpell = giveSpell;
 exports.getSpellInfo = getSpellInfo;
 exports.getItemInfo = getItemInfo;
-exports.getBaiscPlayerInfo = getBaiscPlayerInfo;
+exports.getBasicPlayerInfo = getBasicPlayerInfo;
 exports.getFullPlayerInfo = getFullPlayerInfo;
 exports.getPlayerItems = getPlayerItems;
 exports.getPlayerSpells = getPlayerSpells;
