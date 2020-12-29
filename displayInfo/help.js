@@ -63,6 +63,9 @@ function _getInfoMenu() {
         .setFooter("All commands are lowercase.\nThis menu will timeout in 5 minutes.")
 }
 
+/**
+ * Displays the basic help menu.
+ */
 function _getBaseHelpMenu() {
     return new Discord.MessageEmbed()
         .setColor("0x10A72E")
@@ -79,6 +82,9 @@ function _getBaseHelpMenu() {
         .setFooter("All commands are lowercase.\nThis menu will timeout in 5 minutes.")
 }
 
+/**
+ * Displays the admin commands.
+ */
 function _getAdminMenu() {
     return new Discord.MessageEmbed()
         .setColor("0xb04360")
@@ -107,6 +113,10 @@ function _getAdminMenu() {
         .setFooter("All commands are lowercase.\nThis menu will timeout in 5 minutes.")
 }
 
+/**
+ * Creates a help menu UI allowing players to view all the different commands.
+ * @param {object} msg The object containing information about the message sent through discord.
+ */
 function generateBaseHelpMenu(msg) {
     const baseMenu = _getBaseHelpMenu();
     const combatMenu = _getCombatMenu();

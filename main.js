@@ -67,7 +67,8 @@ function _errorChecksPass(gameObject, msg) {
 
 client.on('message', msg => {
     // Error handling to ensure bot does not respond to itself and to only reply when commands are said in specific channels.
-    if (msg.author.bot || !msg.content.startsWith(PREFIX) || !msg.member) return;
+    if (msg.author.bot || !msg.content.startsWith(PREFIX) || !msg.member)
+        return;
 
     let args = msg.content.substring(PREFIX.length).split(/\n| /);
     args[0] = args[0].toLowerCase();

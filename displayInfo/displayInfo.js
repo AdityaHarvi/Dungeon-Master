@@ -6,6 +6,7 @@ const Discord = require("discord.js"),
 
 /**
  * Displays the journal as a private message to the player.
+ * @param {array} JournalInfo The journal object array.
  * @param {string} playerName Name of the player.
  * @param {object} msg The object containing information about the message sent through discord.
  */
@@ -13,14 +14,11 @@ function displayJournal(journalInfo, playerName, msg) {
     let fields = [];
     let index = 0;
 
-    if (journalInfo.length === 0) {
-        // Base message that the player will see if they don't have any notes.
-        fields[0] = {name: "The pages got wet from the shipwreck and you can\'t make out any of the notes. At least future additions will be easier to read.", value: "`!add-note -<entry name> -<description>`\nDon't forget the `-`'s!"};
-    } else {
-        journalInfo.forEach(entry => {
-            fields[index++] = {name: entry.entry_name, value: entry.description};
-        });
-    }
+    journalInfo.forEach(entry => {
+        fields[index++] = {name: entry.entry_name, value: entry.description};
+    });
+    if (!fields[0])
+        fields[0] = {name: "The pages are all torn up and you can\'t make out any of the notes. At least future additions will be easier to read.", value: "`!add-note -<entry name> -<description>`\nDon't forget the `-`'s!"};
 
     let journal = new Discord.MessageEmbed()
         .setColor("0x32a8a4")
@@ -32,9 +30,21 @@ function displayJournal(journalInfo, playerName, msg) {
     msg.react("✅");
 }
 
+/**
+ * Display information when a player casts a spell.
+ * @param {object} playerInfo The player information.
+ * @param {object} spellInfo The spell information.
+ * @param {int} amount The amount of damage that was caused.
+ * @param {int} roll The roll value (if the spell included a roll).
+ * @param {int} enemyArmor The enemy armor class value.
+ * @param {string} enemyName The enemy name.
+ * @param {object} msg The discord message object.
+ */
 function castInfo(playerInfo, spellInfo, amount, roll, enemyArmor, enemyName, msg) {
     let nameString = "\u200b";
     let valueString = "\u200b";
+
+    // Modifies the strings so that they display information about dice rolls and damage including any buffs to spell/healing power.
     if (spellInfo.bonus_roll) valueString += `Roll: D${spellInfo.bonus_roll} (${roll})\n`;
     if (spellInfo.type === "attack") {
         nameString = `Total Damage Dealt with ${spellInfo.spell_name}: \`${amount}\``;
@@ -65,6 +75,14 @@ function castInfo(playerInfo, spellInfo, amount, roll, enemyArmor, enemyName, ms
     return msg.channel.send(spellEmbed);
 }
 
+/**
+ * Display information when a player attacks with their melee weapon.
+ * @param {object} playerInfo The player information.
+ * @param {string} enemyName The enemy name.
+ * @param {object} itemInfo The item information.
+ * @param {int} damageRoll The amount of damage done from rolling the dice.
+ * @param {object} msg The discord message object.
+ */
 function attackInfo(playerInfo, enemyName, itemInfo, damageRoll, msg) {
     let attackEmbed = new Discord.MessageEmbed()
         .setColor("0x995e06")
@@ -77,6 +95,12 @@ function attackInfo(playerInfo, enemyName, itemInfo, damageRoll, msg) {
     msg.channel.send(attackEmbed);
 }
 
+/**
+ * Get the full player information embed including hp/mp/str + equiped items + spells + tools + money.
+ * @param {object} playerInfo Player information object.
+ * @param {object} weaponInfo Weapon information object.
+ * @param {object} clothingInfo Clothing information object.
+ */
 function _getPlayerInfoEmbed(playerInfo, weaponInfo, clothingInfo) {
     let bonusArmor = "\u200b";
     let bonusSpells = "\u200b";
@@ -108,6 +132,10 @@ function _getPlayerInfoEmbed(playerInfo, weaponInfo, clothingInfo) {
         );
 }
 
+/**
+ * Returns a string of bonuses that the item has.
+ * @param {object} itemInfo The item information object.
+ */
 function _getItemBonus(itemInfo) {
     let bonusList = "";
     if (itemInfo.bonusHealth) bonusList += `+ ${itemInfo.bonusHealth} Health\n`;
@@ -120,6 +148,10 @@ function _getItemBonus(itemInfo) {
     return (bonusList === "") ? "- No Bonuses" : bonusList;
 }
 
+/**
+ * Sets up the list of items so that they are displayed in the proper format on the inventory embed.
+ * @param {object} playerInfo The player information object.
+ */
 function _parsePlayerItems(playerInfo) {
     playerInfo.occupiedInventory = 0;
     playerInfo.itemString = "";
@@ -129,16 +161,17 @@ function _parsePlayerItems(playerInfo) {
     } else {
         playerInfo.items.forEach(itemObject => {
             playerInfo.itemString += `${itemObject.quantity}: ${itemObject.item_name}\n`;
+            playerInfo.occupiedInventory += itemObject.quantity;
         });
     }
-
-    playerInfo.items.forEach(itemObject => {
-        playerInfo.occupiedInventory += itemObject.quantity;
-    });
 
     return playerInfo;
 }
 
+/**
+ * Sets up the list of spells so that they are displayed in the proper format on the inventory embed.
+ * @param {object} playerInfo The player information object.
+ */
 function _parsePlayerSpells(playerInfo) {
     playerInfo.spellList = [];
 
@@ -154,8 +187,9 @@ function _parsePlayerSpells(playerInfo) {
 }
 
 /**
- * Displays the character information for the player requesting it.
+ * Displays the character information in a embed and sent as a DM.
  * @param {string} playerName The name of the player.
+ * @param {object} gameObject The game object.
  * @param {object} msg Contains information about the command sent by the player through discord.
  */
 function playerInfo(playerName, gameObject, msg) {
@@ -164,7 +198,6 @@ function playerInfo(playerName, gameObject, msg) {
     }
 
     db.getFullPlayerInfo(playerName, gameObject.game_title, msg, playerInfo => {
-        if (!playerInfo) return;
         db.getItemInfo(playerInfo.weapon, false, msg, weaponInfo => {
             db.getItemInfo(playerInfo.clothing, false, msg, clothingInfo => {
                 playerInfo = _parsePlayerItems(playerInfo);
@@ -177,6 +210,12 @@ function playerInfo(playerName, gameObject, msg) {
     });
 }
 
+/**
+ * Displays the dice roll.
+ * @param {int} diceSize The value from the dice roll.
+ * @param {string} gameName The game name.
+ * @param {object} msg Contains information about the command sent by the player through discord.
+ */
 function diceRoll(diceSize=20, gameName, msg) {
     db.getBasicPlayerInfo(msg.author.username, gameName, msg, playerInfo => {
         let imageURL = "https://imgur.com/JYyQ1Xd.png";
@@ -191,31 +230,30 @@ function diceRoll(diceSize=20, gameName, msg) {
         }
 
         let finalRoll = roll + playerInfo.luck;
-        if (finalRoll > diceSize) {
+        if (finalRoll > diceSize)
             finalRoll = diceSize;
-        }
 
         if (playerInfo.luck > 0) {
             footerText = "Bonus luck has been applied!";
             luck = true;
         }
 
-        let diceEmbed = _getDiceEmbed(playerInfo, roll, finalRoll, footerText, imageURL, diceSize, luck);
+        let diceEmbed = new Discord.MessageEmbed()
+            .setColor("0xa8a632")
+            .setTitle(`${playerInfo.username} rolls a ${finalRoll}`)
+            .setThumbnail(imageURL)
+            .addFields(
+                {name: `\u200b`, value: `D${diceSize} (${roll}) ${(lucky) ? `+ ${playerInfo.luck}` : ''}`, inline: true}
+            )
+            .setFooter(footerText);
         msg.channel.send(diceEmbed);
     });
 }
 
-function _getDiceEmbed(playerInfo, roll, finalRoll, footerText, imageURL, diceSize=20, lucky) {
-    return new Discord.MessageEmbed()
-        .setColor("0xa8a632")
-        .setTitle(`${playerInfo.username} rolls a ${finalRoll}`)
-        .setThumbnail(imageURL)
-        .addFields(
-            {name: `\u200b`, value: `D${diceSize} (${roll}) ${(lucky) ? `+ ${playerInfo.luck}` : ''}`, inline: true}
-        )
-        .setFooter(footerText);
-}
-
+/**
+ * A generic game object display embed. Displays items and spells.
+ * @param {object} inventoryObject The item/spell object.
+ */
 function _getGameObjectEmbed(inventoryObject) {
     return new Discord.MessageEmbed()
         .setColor(inventoryObject.color)
@@ -231,7 +269,7 @@ function _getGameObjectEmbed(inventoryObject) {
 
 /**
  * Displays item information in an embed.
- * @param {string} itemName The name of the item.
+ * @param {array} rawInput User input.
  * @param {object} msg The object containing information about the message sent through discord.
  */
 function itemInfo(rawInput, msg) {
@@ -254,7 +292,7 @@ function itemInfo(rawInput, msg) {
 
 /**
  * Displays spell information in an embed.
- * @param {string} spellName The name of the spell.
+ * @param {array} rawInput User input.
  * @param {object} msg The object containing information about the message sent through discord.
  */
 function spellInfo(rawInput, msg) {
@@ -262,14 +300,15 @@ function spellInfo(rawInput, msg) {
     db.getSpellInfo(spellName, false, msg, spellInfo => {
         spellInfo.name = spellInfo.spell_name;
         spellInfo.color = 0x34ebab;
-        spellInfo.header = `Mana Cost: ${spellInfo.mana}`;
+        spellInfo.header = `Mana Cost: ${spellInfo.mana_cost}`;
         spellInfo.footer = `!cast ${spellName}`;
+
         if (spellInfo.type === "attack") {
             spellInfo.bonusHeader = "☠️ Attack Spell";
-            spellInfo.bonuses = `Deals ${spellInfo.damage} damage\n${(spellInfo.bonus_roll) ? `+ D(${spellInfo.bonus_roll})` : ""}`;
-        } else if (spellInfo.type === "attack") {
+            spellInfo.bonuses = `Deals ${spellInfo.damage} damage ${(spellInfo.bonus_roll) ? `+ D(${spellInfo.bonus_roll})` : ""}`;
+        } else if (spellInfo.type === "healing") {
             spellInfo.bonusHeader = "👼🏼 Healing Spell";
-            spellInfo.bonuses = `Heals ${spellInfo.healing} health\n${(spellInfo.bonus_roll) ? `+ D(${spellInfo.bonus_roll})` : ""}`;
+            spellInfo.bonuses = `Heals ${spellInfo.healing} health ${(spellInfo.bonus_roll) ? `+ D(${spellInfo.bonus_roll})` : ""}`;
         } else {
             spellInfo.bonusHeader = "🪄 Misc Spell";
             spellInfo.bonuses = `${(spellInfo.bonus_roll) ? `Roll a D(${spellInfo.bonus_roll})` : "\u200b"}`;
@@ -358,6 +397,10 @@ function _getClassFields(className) {
     return classObject;
 }
 
+/**
+ * Gets the class specific embed.
+ * @param {object} classObject The class object.
+ */
 function _getClassEmbed(classObject) {
     return new Discord.MessageEmbed()
         .setColor("0xc2f542")
@@ -365,10 +408,16 @@ function _getClassEmbed(classObject) {
         .setAuthor("Dungeon Master", "https://i.imgur.com/MivKiKL.png")
         .setThumbnail(classObject.url)
         .addFields(classObject.fields)
+        .setFooter("This menu will timeout in 5 minutes.")
 }
 
-function _getClassMenuEmbed() {
-    return new Discord.MessageEmbed()
+/**
+ * Displays a UI allowing players to see detailed information about classes.
+ * @param {object} msg The object containing information about the message sent through discord.
+ */
+function classMenuUi(msg) {
+    let newEmbed;
+    const classMenuEmbed = new Discord.MessageEmbed()
         .setColor("0xc2f542")
         .setTitle(`Class Menu`)
         .setAuthor("Dungeon Master", "https://i.imgur.com/MivKiKL.png")
@@ -381,12 +430,7 @@ function _getClassMenuEmbed() {
             {name: "⚕️ Cleric", value: "\u200b", inline: true},
             {name: "🧙 Archmage", value: "\u200b", inline: true},
             {name: "🎸 Bard", value: "\u200b", inline: true}
-        )
-}
-
-function classMenuUi(msg) {
-    const classMenuEmbed = _getClassMenuEmbed();
-    let newEmbed;
+        );
 
     // Send the message and setup emotes.
     msg.channel.send(classMenuEmbed).then(async classEmbed => {
@@ -404,7 +448,7 @@ function classMenuUi(msg) {
         }
 
         // Handle the reactions.
-        const collector = classEmbed.createReactionCollector(filter);
+        const collector = classEmbed.createReactionCollector(filter, {time: 300000});
         collector.on('collect', reaction => {
             switch (reaction.emoji.name) {
                 case "🌐":
