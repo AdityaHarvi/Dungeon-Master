@@ -21,7 +21,7 @@ function isHost(gameHost, inputUser) {
 
 /**
  * Concatinates the user input to create the Campaign Name.
- * @param {string} rawInput The raw user input.
+ * @param {array} rawInput The raw user input.
  */
 function getName(rawInput) {
     let name = "";
@@ -31,6 +31,10 @@ function getName(rawInput) {
     return name.slice(0, -1).toLowerCase();
 }
 
+/**
+ * Concatinates a dashed command and splits it up appropriately.
+ * @param {array} rawInput The raw user input.
+ */
 function parseDashedCommand(rawInput) {
     let ogString = "";
     rawInput.forEach(arg => {
@@ -40,11 +44,19 @@ function parseDashedCommand(rawInput) {
     return ogString.slice(0, -1).split(" -");
 }
 
+/**
+ * Tests to see if the given string is a imgur URL ending with .png or .gif.
+ * @param {string} imageURL The URL to test.
+ */
 function isImgurLink(imageURL) {
     let pattern = /^https:\/\/(i.)?imgur.com\/\w{7}.(png|gif)$/;
     return pattern.test(imageURL);
 }
 
+/**
+ * Counts the number of dashes in the command.
+ * @param {array} rawInput The raw user input.
+ */
 function dashAmount(rawInput) {
     let dashNumber = 0;
     rawInput.forEach(arg => {

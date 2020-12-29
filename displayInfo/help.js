@@ -12,11 +12,12 @@ function _getCombatMenu() {
         .setThumbnail("https://imgur.com/G8zR8Gd.png")
         .setDescription("Clicking the reaction icons can take you to the respective page.\nClicking 🌐 will return you to the home screen.")
         .addFields(
-            {name: "`!attack`", value: "Attack with your weapon. Auto rolls dice.", inline: true},
-            {name: "`!cast <spell> <player (if healing)>`", value: "Cast a spell. Auto rolls dice.", inline: true},
-            {name: "`!bleed <#>`", value: "Gives you mana at the cost of 3* as much health.", inline: true},
+            {name: "`!attack`", value: "Attack with your weapon.\nAuto rolls dice.", inline: true},
+            {name: "`!bleed <#>`", value: "Gives you mana at the cost of 2* as much health.", inline: true},
+            {name: "`!cast <spell> <target name: optional>`", value: "Cast a spell.\nAuto rolls dice.\nTarget name does not need to be supplied if casting a `Misc` spell.", inline: true},
             {name: "`!roll <optional: dice size>`", value: "Rolls a requested sized dice. Defaults to 20.", inline: true},
-            {name: "`!coinflip`", value: "Cant decide on what to do? Flip a coin!", inline: true}
+            {name: "`!use <item>`", value: "Your character will use a consumable item.", inline: true},
+            {name: "`!coin`", value: "Cant decide on what to do? Flip a coin!", inline: true}
         )
         .setFooter("All commands are lowercase.\nThis menu will timeout in 5 minutes.")
 }
@@ -33,13 +34,13 @@ function _getInventoryMenu() {
         .setDescription("Clicking the reaction icons can take you to the respective page.\nClicking 🌐 will return you to the home screen.")
         .addFields(
             {name: "`!equip <item>`", value: "Equips an item.", inline: true},
-            {name: "`!unequip`", value: "Unequips an item.", inline: true},
-            {name: "`!use <item>`", value: "Your character will use a consumable item.", inline: true},
-            {name: "`!give <player> <item>`", value: "Give another player an item.", inline: true},
-            {name: "`!drop <item>`", value: "Drops an item from your inventory.", inline: true},
+            {name: "`!drop -<item name> -<quantity: optional>`", value: "Drops an item from your inventory.", inline: true},
+            {name: "`!give -<player name> -<item name> -<quantity: optional>`", value: "Give another player an item.", inline: true},
+            {name: "`!upload <imgur URL>`", value: "Modify your character image as seen from the `!info` command.\nOnly accepts imgur links ending with .png / .gif extensions.", inline: true},
             {name: "`!journal`", value: "Read your private journal!", inline: true},
-            {name: "`!add-note <entry name> <message>`", value: "Add something to your journal to help you remember!", inline: true},
-            {name: "`!remove-note <entry name>`", value: "Scratch out an entry form your journal.", inline: true}
+            {name: "`!add-note -<entry name> -<description>`", value: "Add something to your journal to help you remember!", inline: true},
+            {name: "`!del-note <entry name>`", value: "Scratch out an entry form your journal.", inline: true},
+            {name: "`!pay <player name> <$>`", value: "Pay another player a `$` amount of cash.", inline: true}
         )
         .setFooter("All commands are lowercase.\nThis menu will timeout in 5 minutes.")
 }
@@ -56,8 +57,8 @@ function _getInfoMenu() {
         .setDescription("Clicking the reaction icons can take you to the respective page.\nClicking 🌐 will return you to the home screen.")
         .addFields(
             {name: "`!info`", value: "Displays your inventory.", inline: true},
-            {name: "`!item <item>`", value: "Gets info about the item.", inline: true},
-            {name: "`!spell <spell>`", value: "Gets info about the spell.", inline: true},
+            {name: "`!item <item name>`", value: "Gets info about the item.", inline: true},
+            {name: "`!spell <spell name>`", value: "Gets info about the spell.", inline: true},
             {name: "`!class`", value: "Displays a UI for class info.", inline: true}
         )
         .setFooter("All commands are lowercase.\nThis menu will timeout in 5 minutes.")
@@ -92,23 +93,30 @@ function _getAdminMenu() {
         .setAuthor("Dungeon Master", "https://i.imgur.com/MivKiKL.png")
         .setThumbnail("https://imgur.com/GKzfjCg.png")
         .addFields(
-            {name: '`!add <player> <class> <item> <#>`', value: 'Gives a player an item. The last entry is optional.'},
-            {name: '`!remove <player> <class> <item>`', value: 'Removes the item from the player info.'},
-            {name: '`!damage <mp/hp> <player> <#>`', value: 'Removes "#" from player hp/mp'},
-            {name: '`!heal <mp/hp> <player> <#>`', value: 'Adds "#" to player hp/mp'},
-            {name: '`!init <optional: #>`', value: 'Rolls the dice for all players. Uses a D20 as default.'},
-            {name: '`!init-enemy <# of enemies> <optional: Dice Size>`', value: 'Rolls the dice for all enemies using a D20 as a default, or you can set it.'},
-            {name: '`!init-all <# of enemies> <optional: Dice Size>`', value: 'Rolls the dice for all player + enemies using a D20 as a default, or you can set it.'},
-            {name: '`!view <player>`', value: 'View the character info for a player.'},
-            {name: '`!max <hp/str/mp> <player> <#>`', value: 'Sets the players total stat to the requested amount.'},
-            {name: '`!ally <name> <hp #> <str #> <mp #>`', value: 'Creates an ally.'},
-            {name: '`!kill <ally>`', value: 'Kills an ally.'},
-            {name: '`!admin-equip <name> <item>`', value: 'Force equips an item for a player.'},
-            {name: '`!admin-cast <ally> <spell> <target (if healing spell)>`', value: 'Casts a spell for a player.'},
-            {name: '`!admin-activate <name> <ability>`', value: 'Activates an ability for the specified player.'},
-            {name: '`!add-inv <#> <name>`', value: 'Increase the players max-inventory.'},
-            {name: '`!remove-inv <#> <name>`', value: 'Reduce the players max-inventory.'},
-            {name: '`!purge <#>`', value: 'Delete a certain # of messages in the chat.'}
+            {name: "`!init`", value: "Rolls the dice for all players and sorts the info. Uses a D20."},
+            {name: "`!give-money <player name> <$>`", value: "Generate money and give it to a player."},
+            {name: "`!take-money <player name> <$>`", value: "Take money away from a player."},
+            {name: "`!make-item -<item name> -<description> -<imgur link: optional>`", value: "Create an item.\nDon't forget the `-`'s."},
+            {name: "`!del-item <item name>`", value: "Deletes an item. If the spell was given to players, it will be completely removed."},
+            {name: "`!make-spell -<spell name> -<description> -<imgur link: optional>`", value: "Creates a spell.\nDon't forget the `-`'s."},
+            {name: "`!del-spell <spell name>`", value: "Deletes a spell."},
+            {name: "`!shop -<shop name> -<item name> -<$> -<item name> -<$>...`", value: "Creates a shop which can be unlocked (allowing players to purchase from it).\nAllows up to 9 items to be sold."},
+            {name: "`!del-shop <shop name>`", value: "Deletes a shop."},
+            {name: "`!unlock <shop name>`", value: "Lets players purchase from a shop."},
+            {name: "`!make-bot -<bot name> -<health amount> -<strength amount> -<armor amount> -<weapon dice size> -<bonus healing power> -<bonus spell damage>`", value: "Create a bot/enemy allowing players to fight it."},
+            {name: "`!del-bot <bot name>`", value: "Deletes a bot."},
+            {name: "`!give-spell -<player name> -<spell name>`", value: "Give a player a spell."},
+            {name: "`!take-spell -<player name> -<spell name>`", value: "Take a spell from a player."},
+            {name: "`!give-item -<player name> -<item name> -<#: optional>`", value: "Give a certain # of items to a player."},
+            {name: "`!take-item -<player name> -<item name> -<quantity: optional>`", value: "Take a certain # of items from a player."},
+            {name: "`!purge <#>`", value: "Delete a certain # of messagse."},
+            {name: "`!inc -<player name> -<health/mana/strength> -<#>`", value: "Increase the health or mana or strength of a player.\nDoes not go beyond the max of the player."},
+            {name: "`!dec -<player name> -<health/mana/strength> -<#>`", value: "Decrease the health or mana or strength of a player.\nDoes not go below 0."},
+            {name: "`!set-max -<player name> -<health/mana> -<#>`", value: "Adjust the maximum health or mana for a player."},
+            {name: "`!view-info <player name>`", value: "View the inventory/info of any player."},
+            {name: "`!a-attack -<player name to control> -<player name to attack>`", value: "Control a player and attack for them."},
+            {name: "`!a-equip -<player name to control> -<item to equip>`", value: "Control a player and equip an item for them."},
+            {name: "`!a-cast -<player name to control> -<spell name> -<target name: optional>`", value: "Control a player and cast a spell for them."}
         )
         .setFooter("All commands are lowercase.\nThis menu will timeout in 5 minutes.")
 }

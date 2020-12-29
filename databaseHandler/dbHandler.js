@@ -441,7 +441,7 @@ function damagePlayer(playerName, gameName, stat, amount, msg, callback) {
             getActiveGame(gameInfo => {
                 const indexOfBot = gameInfo.players.indexOf(playerName);
                 gameInfo.players.splice(indexOfBot, 1);
-                db.deletePlayer(playerName, gameName);
+                db.deletePlayer(playerName, gameName, gameInfo.players);
             });
         }
 

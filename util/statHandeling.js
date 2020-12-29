@@ -2,6 +2,15 @@ const ui = require("./UImethods"),
     db = require("../databaseHandler/dbHandler"),
     error = require("./error");
 
+/**
+ * Allows for the modification of the health/mana/strength stats of a player/bot.
+ * @param {bool} incStat Whether to increase or decrease the value of a stat.
+ * @param {array} rawInput The raw user input split into an arary.
+ * @param {string} command The error message to send in the event of a failure.
+ * @param {string} gameName The game name.
+ * @param {int} playerChannel The player channel.
+ * @param {object} msg The discord message object.
+ */
 function handleStats(incStat, rawInput, command, gameName, playerChannel, msg) {
     if (ui.dashAmount(rawInput) !== 3)
         return error.error("Missing the 3 required inputs.", command, msg);
@@ -27,9 +36,17 @@ function handleStats(incStat, rawInput, command, gameName, playerChannel, msg) {
     }
 }
 
+/**
+ * Modify the maximum value of health/mana of any player/bot.
+ * @param {array} rawInput The raw user input split into an array.
+ * @param {string} command The command to send in the case of an error.
+ * @param {string} gameName The game name.
+ * @param {int} playerChannel The player channel.
+ * @param {object} msg The message object.
+ */
 function setMax(rawInput, command, gameName, playerChannel, msg) {
     if (ui.dashAmount(rawInput) !== 3)
-    return error.error("Missing the 3 required inputs.", command, msg);
+        return error.error("Missing the 3 required inputs.", command, msg);
 
     let parsedCommand = ui.parseDashedCommand(rawInput);
     parsedCommand[2] = parsedCommand[2].toLowerCase();

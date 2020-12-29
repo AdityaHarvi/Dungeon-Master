@@ -24,14 +24,15 @@ function _classSelection(className, playerObject) {
             playerObject.mana = 0;
             break;
         case "wizard":
-            playerObject.class = 'Wizard';
+            playerObject.class = "Wizard";
+            playerObject.image = "https://i.imgur.com/d5VfPOS.png";
             playerObject.health = 15;
             playerObject.mana = 20;
             playerObject.bonusSpell = 3;
             break;
         case "paladin":
             playerObject.class = "Paladin";
-            playerObject.image = "https://i.imgur.com/BLhcLTS.gif";
+            playerObject.image = "https://i.imgur.com/BLhcLTS.png";
             playerObject.health = 25;
             playerObject.strength = 8;
             playerObject.mana = 5;

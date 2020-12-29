@@ -163,14 +163,14 @@ client.on('message', msg => {
         case "pay":
             if (!_errorChecksPass(activeGameObject, msg)) return;
             (args[1] && args[2] && !isNaN(args[2])) ?
-                inv.pay(args[1], args[2], msg.author.username, activeGameObject, msg) :
+                inv.pay(args[1], Number(args[2]), msg.author.username, activeGameObject, msg) :
                 error.error("Who are you paying and how much?", "`!pay <player name> <$>`\nThe second input is a number.", msg);
             break;
 
         // Combat commands.
         case "roll":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (args[1] && isNaN(args[1]) && args[1] > 0) return error.error("Incorrect inputs.", "`!roll <optional: dice size>` is the proper format. Defaults to D20 if no size is given.", msg);
+            if (args[1] && (isNaN(args[1]) || Number(args[1]) <= 0)) return error.error("The input needs to be a positive number.", "`!roll <optional: dice size>`\nDefaults to D20 if no size is given.", msg);
             display.diceRoll(Number(args[1]), activeGameObject.game_title, msg);
             break;
         case "attack":
@@ -244,7 +244,7 @@ client.on('message', msg => {
             if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
             (args[1]) ?
                 make.deleteSpell(args, msg) :
-                error.error("What is the item name?", "`!del-item <item name>`", msg);
+                error.error("What is the spell name?", "`!del-spell <spell name>`", msg);
             break;
         case "shop":
             if (!_errorChecksPass(activeGameObject, msg)) return;

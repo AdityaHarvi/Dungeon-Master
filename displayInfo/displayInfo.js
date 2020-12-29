@@ -243,7 +243,7 @@ function diceRoll(diceSize=20, gameName, msg) {
             .setTitle(`${playerInfo.username} rolls a ${finalRoll}`)
             .setThumbnail(imageURL)
             .addFields(
-                {name: `\u200b`, value: `D${diceSize} (${roll}) ${(lucky) ? `+ ${playerInfo.luck}` : ''}`, inline: true}
+                {name: `\u200b`, value: `D${diceSize} (${roll}) ${(luck) ? `+ ${playerInfo.luck}` : ''}`, inline: true}
             )
             .setFooter(footerText);
         msg.channel.send(diceEmbed);
@@ -339,7 +339,7 @@ function _getClassFields(className) {
             break;
         case "paladin":
             classObject.name = "Paladin";
-            classObject.url = "https://i.imgur.com/BLhcLTS.gif";
+            classObject.url = "https://i.imgur.com/BLhcLTS.png";
             fields[0] = {name: "|------- ❤️ -------|", value: `|‾‾‾‾‾‾( 25 )‾‾‾‾‾‾|`, inline: true};
             fields[1] = {name: "|------- 💪 -------|", value: `|‾‾‾‾‾‾‾( 8 )‾‾‾‾‾‾‾|`, inline: true};
             fields[2] = {name: "|------- 🧪 -------|", value: `|‾‾‾‾‾‾‾( 5 )‾‾‾‾‾‾‾|`, inline: true};

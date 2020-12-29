@@ -2,7 +2,6 @@ const Discord = require("discord.js"),
     ui = require("./UImethods"),
     error = require("./error"),
     db = require("../databaseHandler/dbHandler");
-const { play } = require("./music");
 
 const page = {
     DICE_SELECTION: "damage_dice",
@@ -36,6 +35,11 @@ const emojiValue = {
     8: "9️⃣"
 }
 
+/**
+ * Returns a embed used in the item & spell creation UI.
+ * @param {object} newInfo The incomming information used to update the embed.
+ * @param {string} type Whether to display item or spell information.
+ */
 function _getEmbed(newInfo, type) {
     return new Discord.MessageEmbed()
         .setColor("0x32a8a4")
@@ -46,10 +50,22 @@ function _getEmbed(newInfo, type) {
         .setFooter("Click 🗑️ to cancel the process.\nThis menu will timout in 5 minutes.");
 }
 
+/**
+ * Modifies the value on the embed.
+ * @param {object} obj The item/spell object.
+ * @param {int} amountToChange The amount to change the value by.
+ * @param {object} itemCreationEmbed The embed to modify.
+ * @param {object} reaction The reaction to remove.
+ * @param {string} type Item/spell.
+ */
 function _handleValueChange(obj, amountToChange, itemCreationEmbed, reaction, type) {
-    (type === "item") ? obj = _getItemPageText(obj) : obj = _getSpellPageText(obj);
+    (type === "item") ?
+        obj = _getItemPageText(obj) :
+        obj = _getSpellPageText(obj);
+
     obj.valueSelection += amountToChange;
-    if (obj.valueSelection < 0) obj.valueSelection = 0;
+    if (obj.valueSelection < 0)
+        obj.valueSelection = 0;
 
     obj.fields[0] = {name: obj.headerText + `: \`${obj.valueSelection}\``, value: "\u200b"};
     let newEmbed = _getEmbed(obj, type);
@@ -60,6 +76,12 @@ function _handleValueChange(obj, amountToChange, itemCreationEmbed, reaction, ty
     return obj;
 }
 
+/**
+ * Displays a menu allowing the host to modify the to-be-created spell/item stats.
+ * @param {object} creationEmbed The embed to modify.
+ * @param {object} obj The item/spell object.
+ * @param {string} type Item/spell.
+ */
 function _getModificationSetup(creationEmbed, obj, type) {
     creationEmbed.reactions.removeAll().catch(error => console.error("Failed to clear reactions: ", error));
 
@@ -81,6 +103,12 @@ function _getModificationSetup(creationEmbed, obj, type) {
     return obj;
 }
 
+/**
+ * Handles changing the screen information for item creation.
+ * @param {object} itemCreationEmbed The item creation embed.
+ * @param {object} itemObject The item object.
+ * @param {object} reaction The reaction to remove.
+ */
 function _getNextItemScreen(itemCreationEmbed, itemObject, reaction) {
     itemObject[itemObject.page] = itemObject.valueSelection;
     itemObject.valueSelection = 0;
@@ -130,6 +158,10 @@ function _getNextItemScreen(itemCreationEmbed, itemObject, reaction) {
     return itemObject;
 }
 
+/**
+ * Modifies the text on the embed depending on the screen.
+ * @param {object} itemObject The item object.
+ */
 function _getItemPageText(itemObject) {
     switch (itemObject.page) {
         case page.DICE_SELECTION:
@@ -176,6 +208,12 @@ function _getItemPageText(itemObject) {
     return itemObject;
 }
 
+/**
+ * Handles changing the screen information for spell creation.
+ * @param {object} spellCreationEmbed Spell creation embed.
+ * @param {object} spellObject The spell object.
+ * @param {object} reaction The reaction to remove.
+ */
 function _getNextSpellScreen(spellCreationEmbed, spellObject, reaction) {
     spellObject[spellObject.page] = spellObject.valueSelection;
     spellObject.valueSelection = 0;
@@ -209,6 +247,10 @@ function _getNextSpellScreen(spellCreationEmbed, spellObject, reaction) {
     return spellObject;
 }
 
+/**
+ * Handles changing the text depending on the screen for a spell.
+ * @param {object} spellObject The spell object.
+ */
 function _getSpellPageText(spellObject) {
     switch (spellObject.page) {
         case spellPage.MANA_SELECTION:
@@ -231,6 +273,12 @@ function _getSpellPageText(spellObject) {
     return spellObject;
 }
 
+/**
+ * Validates the input.
+ * @param {object} parsedCommand The parsed command.
+ * @param {string} itemOrSpell Item/spell.
+ * @param {object} msg The discord message object.
+ */
 function _isCorrectFormat(parsedCommand, itemOrSpell, msg) {
     if (ui.isImgurLink(parsedCommand[1])) {
         error.error("The name should not be a link.", `\`!make-${itemOrSpell} -<${itemOrSpell} name> -<description> -<imgur link: optional>\``, msg);
@@ -245,21 +293,30 @@ function _isCorrectFormat(parsedCommand, itemOrSpell, msg) {
     return true;
 }
 
+/**
+ * Creates a UI allowing the host to create a new item.
+ * @param {array} rawInput The raw user input split into an array.
+ * @param {int} hostChannel The host channel.
+ * @param {object} msg The discord message object.
+ */
 function items(rawInput, hostChannel, msg) {
     let dashAmount = ui.dashAmount(rawInput);
-    if (dashAmount < 2 || dashAmount > 3) {
+    if (dashAmount < 2 || dashAmount > 3)
         return error.error("Incorrect command format.", "This command is a little funky. Don't forget the `-` before the item name and description.\n`!make-item -<item name> -<description> -<imgur link: optional>`", msg);
-    }
 
     let parsedCommand = ui.parseDashedCommand(rawInput);
     parsedCommand[1] = parsedCommand[1].replace(/ /g, "_").toLowerCase();
 
-    if (parsedCommand[1].includes("-")) return error.error("Please don't use a `-` in the name.", null, msg);
-    if (!isNaN(parsedCommand[1])) return error.error("An item name cannot only consist of numbers.", null, msg);
-    if (!_isCorrectFormat(parsedCommand, "item", msg)) return;
+    if (parsedCommand[1].includes("-"))
+        return error.error("Please don't use a `-` in the name.", null, msg);
+    if (!isNaN(parsedCommand[1]))
+        return error.error("An item name cannot only consist of numbers.", null, msg);
+    if (!_isCorrectFormat(parsedCommand, "item", msg))
+        return;
 
     db.getItemInfo(parsedCommand[1], true, msg, itemExists => {
-        if (itemExists) return error.error("An item with that name already exists.", null, msg);
+        if (itemExists)
+            return error.error("An item with that name already exists.", null, msg);
 
         let itemObject = {};
         itemObject.name = parsedCommand[1];
@@ -373,25 +430,39 @@ function items(rawInput, hostChannel, msg) {
     });
 }
 
+/**
+ * Delete's item from the database.
+ * @param {array} rawInput The raw user input split into an array.
+ * @param {object} msg The discord message object.
+ */
 function deleteItem(rawInput, msg) {
     let itemName = ui.getName(rawInput);
     db.deleteItem(itemName, msg);
 }
 
+/**
+ * Creates a UI allowing the host to create a new spells.
+ * @param {array} rawInput The raw user input split into an array.
+ * @param {int} hostChannel The host channel.
+ * @param {object} msg The discord message object.
+ */
 function spells(rawInput, hostChannel, msg) {
-    if (ui.dashAmount(rawInput) !== 2) {
+    if (ui.dashAmount(rawInput) !== 2)
         return error.error("Incorrect command format.", "This command is a little funky. Don't forget the `-` before the spell name and description.\n`!make-spell -<spell name> -<description> -<imgur link: optional>`", msg);
-    }
 
     let parsedCommand = ui.parseDashedCommand(rawInput);
     parsedCommand[1] = parsedCommand[1].replace(/ /g, "_").toLowerCase();
 
-    if (parsedCommand[1].includes("-")) return error.error("Please don't use a `-` in the name.", null, msg);
-    if (!isNaN(parsedCommand[1])) return error.error("A spell name cannot only consist of numbers.", null, msg);
-    if (!_isCorrectFormat(parsedCommand, "spell", msg)) return;
+    if (parsedCommand[1].includes("-"))
+        return error.error("Please don't use a `-` in the name.", null, msg);
+    if (!isNaN(parsedCommand[1]))
+        return error.error("A spell name cannot only consist of numbers.", null, msg);
+    if (!_isCorrectFormat(parsedCommand, "spell", msg))
+        return;
 
     db.getSpellInfo(parsedCommand[1], true, msg, spellExists => {
-        if (spellExists) return error.error("An spell with that name already exists.", null, msg);
+        if (spellExists)
+            return error.error("An spell with that name already exists.", null, msg);
 
         let spellObject = {};
         spellObject.name = parsedCommand[1];
@@ -476,36 +547,50 @@ function spells(rawInput, hostChannel, msg) {
     });
 }
 
+/**
+ * Delets the spell from the database.
+ * @param {array} rawInput The raw user input split into an array.
+ * @param {object} msg The discord message object.
+ */
 function deleteSpells(rawInput, msg) {
     let spellName = ui.getName(rawInput);
     db.deleteItem(spellName, msg);
 }
 
+/**
+ * Creates a shop object allowing players to purchase item from it.
+ * @param {array} rawInput The raw user input split into an array.
+ * @param {string} gameName The game name.
+ * @param {object} msg The discord message object.
+ */
 function shop(rawInput, gameName, msg) {
     let dashAmount = ui.dashAmount(rawInput);
     dashAmount--; // Accounts for the extra "-" for the shop name.
 
-    if (dashAmount % 2 !== 0) {
+    if (dashAmount % 2 !== 0)
         return error.error("Incorrect command format.", "This is a complex command, don't forget the `-` before each entry.\nFor every item listed, it **MUST** also have a `$` value.\n`!shop -<shop name> -<item name> -<$> -<item name> -<$>...`", msg);
-    }
 
     let parsedCommand = ui.parseDashedCommand(rawInput).map(arg => arg.replace(/ /g, "_").toLowerCase());
     let stockString = "";
     let accountedStock = 0;
     let totalStock = (parsedCommand.length - 2) / 2;
 
-    if ((parsedCommand.length - 2) > 18) return error.error("This command only accepts up to a max of 9 items per shop.", null, msg);
+    if ((parsedCommand.length - 2) > 18)
+        return error.error("This command only accepts up to a max of 9 items per shop.", null, msg);
 
     db.getShop(parsedCommand[1], gameName, true, msg, shopInfo => {
-        if (shopInfo) return error.error("Shop with that name already exists.", null, msg);
+        if (shopInfo)
+            return error.error("Shop with that name already exists.", null, msg);
+
         for(let i = 3; i < parsedCommand.length; i += 2) {
-            if (parsedCommand[i] && isNaN(parsedCommand[i])) {
+            if (parsedCommand[i] && isNaN(parsedCommand[i]))
                 return error.error("The `$` value of the item should be a number.", null, msg);
-            }
+
             let stockName = parsedCommand[i - 1];
             let stockPrice = parsedCommand[i];
             db.getItemInfo(stockName, false, msg, itemInfo => {
-                if (itemInfo.item_name === "bare_fist" || itemInfo.item_name === "torn_clothing") return error.error("Cannot sell `torn_clothing` and `bare_fist`.", "These are default items given to all players.", msg);
+                if (itemInfo.item_name === "bare_fist" || itemInfo.item_name === "torn_clothing")
+                    return error.error("Cannot sell `torn_clothing` and `bare_fist`.", "These are default items given to all players.", msg);
 
                 stockString += `~${stockName}|${stockPrice}`;
                 accountedStock++;
@@ -518,15 +603,34 @@ function shop(rawInput, gameName, msg) {
     });
 }
 
+/**
+ * Deletes a shop from the database.
+ * @param {array} rawInput The raw user input split into an array.
+ * @param {string} gameName The game name
+ * @param {object} msg The discord message object.
+ */
 function deleteShop(rawInput, gameName, msg) {
     let shopName = ui.getName(rawInput);
     db.deleteShop(shopName, gameName, msg);
 }
 
+/**
+ * Returns the key when given a value.
+ * @param {object} object The object from which to get the key from.
+ * @param {string} value The value of the key.
+ */
 function _getKeyFromValue(object, value) {
     return Object.keys(object).find(key => object[key] === value);
 }
 
+/**
+ * Generates a shop UI allowing players to click reactions and purchase items.
+ * @param {string} shopName The shop name.
+ * @param {array} fields The fields showing the items for sale.
+ * @param {object} gameObject The game object.
+ * @param {object} stockInfo The shop stock.
+ * @param {object} msg The discord message object.
+ */
 function _generateShopUI(shopName, fields, gameObject, stockInfo, msg) {
     let shopEmbed = new Discord.MessageEmbed()
         .setColor("0x34eba1")
@@ -602,6 +706,12 @@ function _generateShopUI(shopName, fields, gameObject, stockInfo, msg) {
     });
 }
 
+/**
+ * Displays the shop to the players.
+ * @param {array} rawInput The raw user input split into an array.
+ * @param {object} gameObject The game object.
+ * @param {object} msg The discord message object.
+ */
 function openShop(rawInput, gameObject, msg) {
     let shopName = ui.getName(rawInput);
 
@@ -627,14 +737,19 @@ function openShop(rawInput, gameObject, msg) {
                 }
 
                 // Once all item information is read, we can generate the UI.
-                if (index === parsedStock.length) {
+                if (index === parsedStock.length)
                     _generateShopUI(shopName, fields, gameObject, stockInfo, msg);
-                }
             });
         });
     });
 }
 
+/**
+ * Creates a bot (usually an enemy).
+ * @param {array} rawInput The raw user input split into an array.
+ * @param {object} gameObject The game object.
+ * @param {object} msg The discord message object.
+ */
 function bot(rawInput, gameObject, msg) {
     if (ui.dashAmount(rawInput) !== 7)
         return error.error("Improper number of inputs.", "`!make-bot -<bot name> -<health amount> -<strength amount> -<armor amount> -<weapon dice size> -<bonus healing power> -<bonus spell damage>`", msg);
@@ -652,7 +767,8 @@ function bot(rawInput, gameObject, msg) {
             inputsPass = false;
         }
     });
-    if (!inputsPass) return;
+    if (!inputsPass)
+        return;
 
     if (gameObject.players.includes(parsedCommand[1]) || parsedCommand[1].includes("|"))
         return error.error("Error with the bot name.", "Try changing the name so its unique and does not contain the `|` character.", msg);
@@ -724,6 +840,13 @@ function bot(rawInput, gameObject, msg) {
     msg.react("✅");
 }
 
+/**
+ * Deletes the bot from the database.
+ * @param {array} rawInput The raw user input split into an array.
+ * @param {players} playerList The player list.
+ * @param {string} gameName The game name.
+ * @param {object} msg The discord message object.
+ */
 function deleteBot(rawInput, playerList, gameName, msg) {
     let botName = ui.getName(rawInput);
     if (!playerList.includes(botName))

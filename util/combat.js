@@ -5,8 +5,10 @@ const error = require("../util/error"),
     dice = require("../util/dice");
 
 /**
- * Rolls the dice and adds it to the strength of the player.
- * @param {string} risk If the player has a special ability, they can use it here.
+ * Performs an attack on the enemy. Auto rolls the dice.
+ * @param {string} enemyName The enemy name.
+ * @param {string} playerName The player name.
+ * @param {string} gameName The game name.
  * @param {object} msg Contains information about the command sent by the player through discord.
  */
 function melee(enemyName, playerName, gameName, msg) {
@@ -15,9 +17,8 @@ function melee(enemyName, playerName, gameName, msg) {
         let attackRoll = roll + playerInfo.strength;
 
         db.getBasicPlayerInfo(enemyName, gameName, msg, enemyInfo => {
-            if (attackRoll < enemyInfo.armor) {
+            if (attackRoll < enemyInfo.armor)
                 return error.error(`Your attack-roll of \`${attackRoll}\` was not enough to overcome ${enemyName}'s armor-class of \`${enemyInfo.armor}\`.`, `D20 (${roll}) + ${playerInfo.strength}`, msg);
-            }
 
             db.getItemInfo(playerInfo.weapon, false, msg, itemInfo => {
                 let damageRoll = dice.roll(itemInfo.damage_dice);
@@ -28,6 +29,13 @@ function melee(enemyName, playerName, gameName, msg) {
     });
 }
 
+/**
+ * Increase the mana of the player at the cost of 2x their health.
+ * @param {int} bleedAmount The amount of mana to gain.
+ * @param {string} playerName The player name.
+ * @param {string} gameName The game name
+ * @param {object} msg The discord message object.
+ */
 function bleed(bleedAmount, playerName, gameName, msg) {
     db.getBasicPlayerInfo(playerName, gameName, msg, playerInfo => {
         if (playerInfo.mana === playerInfo.maxMana) {
@@ -37,9 +45,8 @@ function bleed(bleedAmount, playerName, gameName, msg) {
             msg.channel.send(`Bleed amount reduced to \`${bleedAmount}\`.`);
         }
 
-        if ((bleedAmount * 2) >= playerInfo.health) {
+        if ((bleedAmount * 2) >= playerInfo.health)
             return error.error("You do not have enough health to do this action.", "Bleeding takes up twice the amount of HP. So if you wanted to regen 2 MP, it needs 4 HP!", msg);
-        }
 
         db.bleedPlayer(bleedAmount * 2, bleedAmount, playerName, gameName, () => {
             msg.channel.send(`You've lost \`${bleedAmount * 2}\` HP and gained \`${bleedAmount}\` MP.`);
@@ -48,8 +55,10 @@ function bleed(bleedAmount, playerName, gameName, msg) {
 }
 
 /**
- * Consumes an item from the players inventory.
- * @param {string} itemName The item to be consumed.
+ * Consumes an item from the players inventory and applies the appropriate boosts.
+ * @param {array} rawInput The raw user input split into an array.
+ * @param {string} playerName The player name.
+ * @param {string} gameName The game name.
  * @param {object} msg The object containing information about the message sent through discord.
  */
 function use(rawInput, playerName, gameName, msg) {
@@ -58,17 +67,16 @@ function use(rawInput, playerName, gameName, msg) {
 }
 
 /**
- * Reads spell information.
- * @param {string} spellName The name of the spell being cast.
- * @param {object} msg The object containing information about the message sent through discord.
- * @param {string} target The target for who to cast a spell on.
- * @param {stirng} playerName The name of the player, this is only used if you are force-casting for a player.
+ * Casts a spell on a target.
+ * @param {array} rawInput The name of the spell being cast.
+ * @param {string} playerName The name of the player.
+ * @param {object} gameObject The game object.
+ * @param {object} msg The discord message object.
  */
 function cast(rawInput, playerName, gameObject, msg) {
     let dashAmount = ui.dashAmount(rawInput);
-    if (dashAmount < 1 || dashAmount > 2) {
+    if (dashAmount < 1 || dashAmount > 2)
         return error.error("Incorrect command format.", "This command is a little funky. Don't forget the `-` before the names. Player/Enemy names are only needed if casting an attack/healing spell.\n`!cast -<spell name> -<player/enemy name>`", msg);
-    }
 
     let parsedCommand = ui.parseDashedCommand(rawInput);
     parsedCommand[1] = parsedCommand[1].replace(/ /g, "_").toLowerCase();
@@ -86,6 +94,13 @@ function cast(rawInput, playerName, gameObject, msg) {
     });
 }
 
+/**
+ * Allows the host to control a player and attack for them. Useful for when controlling a bot.
+ * @param {array} rawInput The raw user input split into an array.
+ * @param {array} playerList The list of players.
+ * @param {string} gameName The game name.
+ * @param {object} msg The discord message object.
+ */
 function adminMelee(rawInput, playerList, gameName, msg) {
     if (ui.dashAmount(rawInput) !== 2)
         return error.error("This command takes exactly 2 inputs.", "`!a-attack -<player name to control> -<player name to attack>`", msg);
@@ -99,6 +114,13 @@ function adminMelee(rawInput, playerList, gameName, msg) {
     melee(parsedCommand[2], parsedCommand[1], gameName, msg);
 }
 
+/**
+ * Allows the host to control a player and cast a spell for them. Useful for when controlling a bot.
+ * @param {array} rawInput The raw user input split into an array.
+ * @param {array} playerList The list of players.
+ * @param {string} gameName The game name.
+ * @param {object} msg The discord message object.
+ */
 function adminCast(rawInput, playerList, gameObject, msg) {
     let dashAmount = ui.dashAmount(rawInput);
     if (dashAmount < 2 || dashAmount > 3)
@@ -112,6 +134,7 @@ function adminCast(rawInput, playerList, gameObject, msg) {
     if (parsedCommand[3] && !playerList.includes(parsedCommand[3]))
         return error.error(`Was not able to find ${parsedCommand[3]}`, null, msg);
 
+    // Modify the input so that it can be intrepreted by the 'cast' function.
     rawInput.splice(1,1);
     cast(rawInput, parsedCommand[1], gameObject, msg);
 }

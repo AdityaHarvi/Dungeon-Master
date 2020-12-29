@@ -32,9 +32,17 @@ function _getFields(sortedArray) {
     return fields;
 }
 
+/**
+ * Rolls the dice for every bot + player & sorts the rolls. Displays all the rolls in a embed & pins the message so that its easily accessable
+ * during combat.
+ * @param {array} players The list of players.
+ * @param {int} playerChannel The game channel for players.
+ * @param {object} msg The discord message object.
+ */
 function init(players, playerChannel, msg) {
     let initObj = {};
     let initRolls = [];
+
     players.forEach(player => {
         initObj.roll = roll();
         initObj.name = player;
