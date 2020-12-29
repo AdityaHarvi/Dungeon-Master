@@ -20,14 +20,9 @@ function equip(playerName, gameName, rawInput, msg) {
  * @param {object} msg The object containing information about the message sent through discord.
  */
 function drop(playerName, gameObject, rawInput, msg) {
-    let testForDash = 0;
-    rawInput.forEach(arg => {
-        if (arg.charAt(0) === "-") {
-            testForDash++;
-        }
-    });
-    if (testForDash < 1) {
-        return error.error("Incorrect command format.", "This command is a little funky. Don't forget the `-` before the name and quantity.\n`!drop -<item name> -<quantity: optional>`", msg);
+    let dashAmount = ui.dashAmount(rawInput);
+    if (dashAmount < 1 || dashAmount > 2) {
+        return error.error("This command accepts a max of 2 inputs.", "This command is a little funky. Don't forget the `-` before the name and quantity.\n`!drop -<item name> -<quantity: optional>`", msg);
     }
 
     let parsedCommand = ui.parseDashedCommand(rawInput);
@@ -84,13 +79,8 @@ function adminEquip(rawInput, playerList, gameName, msg) {
  * @param {string} msg The original command sent by the player.
  */
 function transfer(playerName, gameObject, rawInput, msg) {
-    let testForDash = 0;
-    rawInput.forEach(arg => {
-        if (arg.charAt(0) === "-") {
-            testForDash++;
-        }
-    });
-    if (testForDash < 2) {
+    let dashAmount = ui.dashAmount(rawInput);
+    if (dashAmount < 2 || dashAmount > 3) {
         return error.error("Incorrect command format.", "This command is a little funky. Don't forget the `-` before the names and quantity.\n`!give -<player name> -<item name> -<quantity: optional>`", msg);
     }
 
@@ -112,13 +102,7 @@ function upload(imageURL, playerName, gameName, msg) {
 }
 
 function addNote(rawInput, playerName, gameName, msg) {
-    let testForDash = 0;
-    rawInput.forEach(arg => {
-        if (arg.charAt(0) === "-") {
-            testForDash++;
-        }
-    });
-    if (testForDash !== 2) {
+    if (ui.dashAmount(rawInput) !== 2) {
         return error.error("Incorrect command format.", "This command is a little funky. Don't forget the `-` before the entry-name and description.\n**WARNING: You cannot use a dash anywhere in your entry-name or description!**\nIt can only appear right before the name/description.\n`!drop -<entry name> -<description>`", msg);
     }
 
@@ -153,13 +137,9 @@ function pay(receiver, amount, playerName, gameObject, msg) {
 }
 
 function giveItem(rawInput, gameObject, msg) {
-    let testForDash = 0;
-    rawInput.forEach(arg => {
-        if (arg.charAt(0) === "-") {
-            testForDash++;
-        }
-    });
-    if (testForDash < 2 || testForDash > 3) return error.error("Incorrect command format.", "Don't forget the `-` before the inputs.\n`!give-item -<player name> -<item name> -<#: optional>`", msg);
+    let dashAmount = ui.dashAmount(rawInput);
+    if (dashAmount < 2 || dashAmount > 3)
+        return error.error("Incorrect command format.", "Don't forget the `-` before the inputs.\n`!give-item -<player name> -<item name> -<#: optional>`", msg);
 
     let parsedCommand = ui.parseDashedCommand(rawInput);
     parsedCommand[2] = parsedCommand[2].replace(/ /g, "_").toLowerCase();
@@ -173,13 +153,8 @@ function giveItem(rawInput, gameObject, msg) {
 }
 
 function giveSpell(rawInput, gameObject, msg) {
-    let testForDash = 0;
-    rawInput.forEach(arg => {
-        if (arg.charAt(0) === "-") {
-            testForDash++;
-        }
-    });
-    if (testForDash !== 2) return error.error("Incorrect command format.", "Don't forget the `-` before the inputs.\n`!give-spell -<player name> -<spell name>`", msg);
+    if (ui.dashAmount(rawInput) !== 2)
+        return error.error("Incorrect command format.", "Don't forget the `-` before the inputs.\n`!give-spell -<player name> -<spell name>`", msg);
 
     let parsedCommand = ui.parseDashedCommand(rawInput);
     parsedCommand[2] = parsedCommand[2].replace(/ /g, "_").toLowerCase();

@@ -246,13 +246,8 @@ function _isCorrectFormat(parsedCommand, itemOrSpell, msg) {
 }
 
 function items(rawInput, hostChannel, msg) {
-    let testForDash = 0;
-    rawInput.forEach(arg => {
-        if (arg.charAt(0) === "-") {
-            testForDash++;
-        }
-    });
-    if (testForDash < 2) {
+    let dashAmount = ui.dashAmount(rawInput);
+    if (dashAmount < 2 || dashAmount > 3) {
         return error.error("Incorrect command format.", "This command is a little funky. Don't forget the `-` before the item name and description.\n`!make-item -<item name> -<description> -<imgur link: optional>`", msg);
     }
 
@@ -384,13 +379,7 @@ function deleteItem(rawInput, msg) {
 }
 
 function spells(rawInput, hostChannel, msg) {
-    let testForDash = 0;
-    rawInput.forEach(arg => {
-        if (arg.charAt(0) === "-") {
-            testForDash++;
-        }
-    });
-    if (testForDash !== 2) {
+    if (ui.dashAmount(rawInput) !== 2) {
         return error.error("Incorrect command format.", "This command is a little funky. Don't forget the `-` before the spell name and description.\n`!make-spell -<spell name> -<description> -<imgur link: optional>`", msg);
     }
 
@@ -493,15 +482,10 @@ function deleteSpells(rawInput, msg) {
 }
 
 function shop(rawInput, gameName, msg) {
-    let testForDash = 0;
-    rawInput.forEach(arg => {
-        if (arg.charAt(0) === "-") {
-            testForDash++;
-        }
-    });
-    testForDash--; // Accounts for the extra "-" for the shop name.
+    let dashAmount = ui.dashAmount(rawInput);
+    dashAmount--; // Accounts for the extra "-" for the shop name.
 
-    if (testForDash % 2 !== 0) {
+    if (dashAmount % 2 !== 0) {
         return error.error("Incorrect command format.", "This is a complex command, don't forget the `-` before each entry.\nFor every item listed, it **MUST** also have a `$` value.\n`!shop -<shop name> -<item name> -<$> -<item name> -<$>...`", msg);
     }
 

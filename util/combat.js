@@ -65,14 +65,8 @@ function use(rawInput, playerName, gameName, msg) {
  * @param {stirng} playerName The name of the player, this is only used if you are force-casting for a player.
  */
 function cast(rawInput, playerName, gameObject, msg) {
-    let testForDash = 0;
-    rawInput.forEach(arg => {
-        if (arg.charAt(0) === "-") {
-            testForDash++;
-        }
-    });
-
-    if (testForDash < 1 || testForDash > 2) {
+    let dashAmount = ui.dashAmount(rawInput);
+    if (dashAmount < 1 || dashAmount > 2) {
         return error.error("Incorrect command format.", "This command is a little funky. Don't forget the `-` before the names. Player/Enemy names are only needed if casting an attack/healing spell.\n`!cast -<spell name> -<player/enemy name>`", msg);
     }
 
