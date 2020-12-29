@@ -98,9 +98,9 @@ function adminMelee(rawInput, playerList, gameName, msg) {
 
     let parsedCommand = ui.parseDashedCommand(rawInput);
     if (!playerList.includes(parsedCommand[1]))
-        return error.error(`Was not able to find ${parsedCommand[1]}`, null, msg);
+        return error.error(`Was not able to find ${parsedCommand[1]} in player list.`, null, msg);
     if (!playerList.includes(parsedCommand[2]))
-        return error.error(`Was not able to find ${parsedCommand[2]}`, null, msg);
+        return error.error(`Was not able to find ${parsedCommand[2]} in player list.`, null, msg);
 
     melee(parsedCommand[2], parsedCommand[1], gameName, msg);
 }

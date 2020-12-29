@@ -124,7 +124,7 @@ client.on('message', msg => {
         case "equip":
             if (!_errorChecksPass(activeGameObject, msg)) return;
             (args[1]) ?
-                inv.equip(msg.author.username, activeGameObject, args, msg) :
+                inv.equip(msg.author.username, activeGameObject.game_title, args, msg) :
                 error.error("What is the item you want to equip?", "`!equip <item name>`", msg);
             break;
         case "drop":
@@ -353,6 +353,11 @@ client.on('message', msg => {
                 error.error("No arguments given.", "`!a-attack -<player name to control> -<player name to attack>`", msg);
             break;
         case "a-equip":
+            if (!_errorChecksPass(activeGameObject, msg)) return;
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            (args[1]) ?
+                inv.adminEquip(args, activeGameObject.players, activeGameObject.game_title, msg) :
+                error.error("No arguments given.", "`!a-equip -<player name to control> -<item to equip>`", msg);
             break;
         case "a-cast":
             if (!_errorChecksPass(activeGameObject, msg)) return;

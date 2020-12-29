@@ -68,7 +68,7 @@ function castInfo(playerInfo, spellInfo, amount, roll, enemyArmor, enemyName, ms
 function attackInfo(playerInfo, enemyName, itemInfo, damageRoll, msg) {
     let attackEmbed = new Discord.MessageEmbed()
         .setColor("0x995e06")
-        .setTitle(`${playerInfo.username} cuts through ${enemyName}'s armor!`)
+        .setTitle(`${playerInfo.username} breaks through ${enemyName}'s armor!`)
         .setThumbnail(itemInfo.image)
         .addFields(
             {name: `Total Damage Dealt: \`${damageRoll}\``, value: `D${itemInfo.damage_dice} (${damageRoll})`}

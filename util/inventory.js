@@ -9,9 +9,9 @@ const db = require("../databaseHandler/dbHandler"),
  * @param {string} itemName Name of item to equip.
  * @param {object} msg The object containing information about the message sent through discord.
  */
-function equip(playerName, gameObject, rawInput, msg) {
+function equip(playerName, gameName, rawInput, msg) {
     let itemName = ui.getName(rawInput);
-    db.equipItem(playerName, gameObject.game_title, itemName, msg);
+    db.equipItem(playerName, gameName, itemName, msg);
 }
 
 /**
@@ -60,6 +60,21 @@ function adminRemoveSpell(rawInput, gameObject, msg) {
     parsedCommand[2] = parsedCommand[2].replace(/ /g, "_").toLowerCase();
 
     db.takeSpell(parsedCommand[1], gameObject, parsedCommand[2], msg);
+}
+
+function adminEquip(rawInput, playerList, gameName, msg) {
+    if (ui.dashAmount(rawInput) !== 2)
+        return error.error("This command takes exactly 2 inputs.", "`!a-equip -<player name to control> -<item to equip>`", msg);
+
+    let parsedCommand = ui.parseDashedCommand(rawInput);
+    parsedCommand[2] = parsedCommand[2].replace(/ /g, "_").toLowerCase();
+    if (!playerList.includes(parsedCommand[1]))
+        return error.error(`Was not able to find ${parsedCommand[1]}`, null, msg);
+
+    rawInput.splice(1,1);
+    rawInput[1] = rawInput[1].substr(1);
+
+    equip(parsedCommand[1], gameName, rawInput, msg);
 }
 
 /**
@@ -186,3 +201,4 @@ exports.giveItem = giveItem;
 exports.giveSpell = giveSpell;
 exports.adminRemoveItem = adminRemoveItem;
 exports.adminRemoveSpell = adminRemoveSpell;
+exports.adminEquip = adminEquip;
