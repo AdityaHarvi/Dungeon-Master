@@ -13,3 +13,5 @@ This discord bot allows for player inventory management, basic combat with melee
 - Boot up your terminal and run `node main.js`! The bot should notify you (through the terminal) once it has setup the database and is accepting commands.
 - From here you can create a game with `!create <campaign name>`. A list of further commands can be found in the wiki :)
   - There is no limit to how many players can join the game, but upon clicking the :+1: button, you will be assigned as the host of the game and all players will be allowed to pick their classes.
+## Extra Questions?
+- Take a look at the [wiki](https://github.com/AdityaHarvi/Dungeon-Master/wiki)
