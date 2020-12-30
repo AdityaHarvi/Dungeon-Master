@@ -170,7 +170,7 @@ function _createRoles(gameName, msg, callback) {
  * @param {object} msg Contains information about the command sent by the player through discord.
  * @param {function} callback Callback function.
  */
-function _setRoles(gameObject, client, msg, callback) {
+function _setRoles(gameObject, msg, callback) {
     _createRoles(gameObject.game_title, msg, () => {
         // Assign the host role.
         let hostUser = msg.guild.members.cache.get(msg.client.users.cache.find(user => user.username === gameObject.host).id);
@@ -265,7 +265,7 @@ function _generateCreationUI(gameName, gameDescription, msg) {
                             }
                             gameSetupEmbed.delete();
 
-                            _setRoles(gameObject, msg.client, msg, newObject => {
+                            _setRoles(gameObject, msg, newObject => {
                                 db.insertGame(newObject);
                                 msg.channel.send(`Campaign \`${newObject.game_title}\` has been created.`);
 
@@ -307,7 +307,7 @@ function setupGame(rawInput, msg) {
 
     db.getGameInfo(gameName, gameObject => {
         if (gameObject) {
-            return error.error("A campaign of this title has already been made.", null, msg);
+            return error.error("A campaign of this title has already been made.", undefined, msg);
         }
 
         db.getActiveGame(isActive => {

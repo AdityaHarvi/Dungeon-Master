@@ -84,7 +84,7 @@ function adminEquip(rawInput, playerList, gameName, msg) {
     let parsedCommand = ui.parseDashedCommand(rawInput);
     parsedCommand[2] = parsedCommand[2].replace(/ /g, "_").toLowerCase();
     if (!playerList.includes(parsedCommand[1]))
-        return error.error(`Was not able to find ${parsedCommand[1]}`, null, msg);
+        return error.error(`Was not able to find ${parsedCommand[1]}`, undefined, msg);
 
     // Format the input so its usable by the equip function.
     rawInput.splice(1,1);
@@ -124,7 +124,8 @@ function transfer(playerName, gameObject, rawInput, msg) {
  * @param {object} msg The discord message object.
  */
 function upload(imageURL, playerName, gameName, msg) {
-    if (!ui.isImgurLink(imageURL)) return error.error("This command only accepts imgur links. Please note that the link should end with a `.png` or `.gif` extension.", null, msg);
+    if (!ui.isImgurLink(imageURL))
+        return error.error("This command only accepts imgur links. Please note that the link should end with a `.png` or `.gif` extension.", undefined, msg);
     db.uploadImage(imageURL, playerName, gameName, msg);
 }
 
@@ -159,6 +160,7 @@ function addNote(rawInput, playerName, gameName, msg) {
  */
 function removeNote(rawInput, playerName, gameName, msg) {
     let entryName = ui.getName(rawInput);
+    msg.delete();
     db.deleteJournalEntry(entryName, playerName, gameName, msg);
 }
 
@@ -208,8 +210,9 @@ function giveItem(rawInput, gameObject, msg) {
     if (parsedCommand[3] && isNaN(parsedCommand[3]))
         return error.error("The last input is a numeric value.", "Don't forget the `-` before the inputs.\n`!give-item -<player name> -<item name> -<#: optional>`", msg);
 
-    db.giveItem(parsedCommand[1], gameObject, parsedCommand[2], Number(parsedCommand[3]), msg, amountGiven => {
-        msg.channel.send(`Successfully gave ${parsedCommand[1]}, ${amountGiven} ${parsedCommand[2]}`);
+    db.giveItem(parsedCommand[1], gameObject, parsedCommand[2], parsedCommand[3] && Number(parsedCommand[3]), msg, amountGiven => {
+        msg.channel.send(`Successfully gave \`${parsedCommand[1]}\`, \`${amountGiven}: ${parsedCommand[2]}\``);
+        msg.guild.channels.cache.get(gameObject.playerChannel).send(`\`${parsedCommand[1]}\` just got an item!`);
     });
 }
 

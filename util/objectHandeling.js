@@ -308,15 +308,15 @@ function items(rawInput, hostChannel, msg) {
     parsedCommand[1] = parsedCommand[1].replace(/ /g, "_").toLowerCase();
 
     if (parsedCommand[1].includes("-"))
-        return error.error("Please don't use a `-` in the name.", null, msg);
+        return error.error("Please don't use a `-` in the name.", undefined, msg);
     if (!isNaN(parsedCommand[1]))
-        return error.error("An item name cannot only consist of numbers.", null, msg);
+        return error.error("An item name cannot only consist of numbers.", undefined, msg);
     if (!_isCorrectFormat(parsedCommand, "item", msg))
         return;
 
     db.getItemInfo(parsedCommand[1], true, msg, itemExists => {
         if (itemExists)
-            return error.error("An item with that name already exists.", null, msg);
+            return error.error("An item with that name already exists.", undefined, msg);
 
         let itemObject = {};
         itemObject.name = parsedCommand[1];
@@ -454,15 +454,15 @@ function spells(rawInput, hostChannel, msg) {
     parsedCommand[1] = parsedCommand[1].replace(/ /g, "_").toLowerCase();
 
     if (parsedCommand[1].includes("-"))
-        return error.error("Please don't use a `-` in the name.", null, msg);
+        return error.error("Please don't use a `-` in the name.", undefined, msg);
     if (!isNaN(parsedCommand[1]))
-        return error.error("A spell name cannot only consist of numbers.", null, msg);
+        return error.error("A spell name cannot only consist of numbers.", undefined, msg);
     if (!_isCorrectFormat(parsedCommand, "spell", msg))
         return;
 
     db.getSpellInfo(parsedCommand[1], true, msg, spellExists => {
         if (spellExists)
-            return error.error("An spell with that name already exists.", null, msg);
+            return error.error("An spell with that name already exists.", undefined, msg);
 
         let spellObject = {};
         spellObject.name = parsedCommand[1];
@@ -576,15 +576,15 @@ function shop(rawInput, gameName, msg) {
     let totalStock = (parsedCommand.length - 2) / 2;
 
     if ((parsedCommand.length - 2) > 18)
-        return error.error("This command only accepts up to a max of 9 items per shop.", null, msg);
+        return error.error("This command only accepts up to a max of 9 items per shop.", undefined, msg);
 
     db.getShop(parsedCommand[1], gameName, true, msg, shopInfo => {
         if (shopInfo)
-            return error.error("Shop with that name already exists.", null, msg);
+            return error.error("Shop with that name already exists.", undefined, msg);
 
         for(let i = 3; i < parsedCommand.length; i += 2) {
             if (parsedCommand[i] && isNaN(parsedCommand[i]))
-                return error.error("The `$` value of the item should be a number.", null, msg);
+                return error.error("The `$` value of the item should be a number.", undefined, msg);
 
             let stockName = parsedCommand[i - 1];
             let stockPrice = parsedCommand[i];
@@ -737,8 +737,10 @@ function openShop(rawInput, gameObject, msg) {
                 }
 
                 // Once all item information is read, we can generate the UI.
-                if (index === parsedStock.length)
+                if (index === parsedStock.length) {
                     _generateShopUI(shopName, fields, gameObject, stockInfo, msg);
+                    msg.react("✅");
+                }
             });
         });
     });
@@ -832,7 +834,7 @@ function bot(rawInput, gameObject, msg) {
     clothingObj.bonusInventory = 0;
     clothingObj.bonusMoney= 0;
 
-    db.newItem(itemObject);
+    db.newItem(weaponObj);
     db.newItem(clothingObj);
     db.addPlayer(playerObject);
     gameObject.players.push(parsedCommand[1]);

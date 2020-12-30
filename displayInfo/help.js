@@ -64,6 +64,22 @@ function _getInfoMenu() {
         .setFooter("All commands are lowercase.\nThis menu will timeout in 5 minutes.")
 }
 
+function _getGameStatusInfo() {
+    return new Discord.MessageEmbed()
+        .setColor("0x10A72E")
+        .setTitle("Help Menu")
+        .setAuthor("Dungeon Master", "https://i.imgur.com/MivKiKL.png")
+        .setThumbnail("https://imgur.com/L9Co78B.png")
+        .setDescription("Clicking the reaction icons can take you to the respective page.\nClicking 🌐 will return you to the home screen.")
+        .addFields(
+            {name: "`!create -<campaign name> -<campaign description>`", value: "Generate a UI allowing players to join a game.", inline: true},
+            {name: "`!pause-game <campaign name>`", value: "Pause the game preventing players from typing in it and allowing all other members of the server to view the text channel.", inline: true},
+            {name: "`!play-game <campaign name>`", value: "Set the game as active- allowing players to type into the channels and preventing non-players from viewing the channel.", inline: true},
+            {name: "`!end-game <campaign name>`", value: "Generate a UI allowing the host to either archive or fully wipe the game.", inline: true}
+        )
+        .setFooter("All commands are lowercase.\nThis menu will timeout in 5 minutes.")
+}
+
 /**
  * Displays the basic help menu.
  */
@@ -78,7 +94,8 @@ function _getBaseHelpMenu() {
             {name: "📋 Information", value: "\u200b", inline: true},
             {name: "🎒 Inventory", value: "\u200b", inline: true},
             {name: "⚔️ Combat", value: "\u200b", inline: true},
-            {name: "🕵️ Admin", value: "\u200b"}
+            {name: "🖥️ Game Status", value: "\u200b", inline:true},
+            {name: "🕵️ Admin", value: "\u200b", inline: true}
         )
         .setFooter("All commands are lowercase.\nThis menu will timeout in 5 minutes.")
 }
@@ -131,19 +148,19 @@ function generateBaseHelpMenu(msg) {
     const inventoryMenu = _getInventoryMenu();
     const adminMenu = _getAdminMenu();
     const infoMenu = _getInfoMenu();
-    let inputUserName;
+    const gameStatusMenu = _getGameStatusInfo();
 
     // Send the message and setup emotes.
     msg.channel.send(baseMenu).then(async helpMenu => {
         await helpMenu.react("📋");
         await helpMenu.react("🎒");
         await helpMenu.react("⚔️");
+        await helpMenu.react("🖥️");
         await helpMenu.react("🕵️");
         await helpMenu.react("🌐");
 
         const filter = (reaction, user) => {
-            inputUserName = user.username;
-            return ["📋","🎒","⚔️","🌐","🕵️"].includes(reaction.emoji.name) && !user.bot;
+            return ["📋","🎒","⚔️","🖥️","🌐","🕵️"].includes(reaction.emoji.name) && !user.bot;
         }
 
         // Handle the reactions.
@@ -158,6 +175,9 @@ function generateBaseHelpMenu(msg) {
                     break;
                 case "⚔️":
                     helpMenu.edit(combatMenu);
+                    break;
+                case "🖥️":
+                    helpMenu.edit(gameStatusMenu);
                     break;
                 case "🕵️":
                     helpMenu.edit(adminMenu);

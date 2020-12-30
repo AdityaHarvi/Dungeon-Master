@@ -144,7 +144,9 @@ function _getItemBonus(itemInfo) {
     if (itemInfo.bonusSpell) bonusList += `+ ${itemInfo.bonusSpell} Spell Damage\n`;
     if (itemInfo.bonusHealing) bonusList += `+ ${itemInfo.bonusHealing} Healing Power\n`;
     if (itemInfo.bonusArmor) bonusList += `+ ${itemInfo.bonusArmor} Armor\n`;
-    if (itemInfo.bonusLuck) bonusList += `+ ${itemInfo.bonusLuck} Luck`;
+    if (itemInfo.bonusLuck) bonusList += `+ ${itemInfo.bonusLuck} Luck\n`;
+    if (itemInfo.bonusMoney) bonusList += `+ ${itemInfo.bonusMoney} Money\n`;
+    if (itemInfo.bonusInventory) bonusList += `+ ${itemInfo.bonusInventory} Inventory Space\n`;
     return (bonusList === "") ? "- No Bonuses" : bonusList;
 }
 

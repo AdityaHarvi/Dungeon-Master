@@ -13,17 +13,15 @@ const Discord = require("discord.js"),
     make = require("./util/objectHandeling"),
     ui = require("./util/UImethods"),
     purge = require("./util/purge")
-    music = require("./util/music")
     stat = require("./util/statHandeling");
 
 var activeGameObject;
-var queue = new Map();
 
 // Log into the bot.
 client.login(getToken.getToken());
 
 // Startup
-client.on('ready', () => {
+client.on("ready", () => {
     database.createDB();
     client.user.setActivity('!help');
     console.log('System is online.');
@@ -33,18 +31,6 @@ function setActiveGameObject(newGameObject) {
     activeGameObject = newGameObject;
 }
 
-function queueDelete(guildID) {
-    queue.delete(guildID);
-}
-
-function queueSet(guildID, queueContruct) {
-    queue.set(guildID, queueContruct)
-}
-
-function getQueue(guildID) {
-    return queue.get(guildID);
-}
-
 function _errorChecksPass(gameObject, msg) {
     if (!gameObject) {
         error.error("Error finding an active game.", "Create one with `!create <campaign name>` or resume a paused game with `!play <campaign name>`.", msg);
@@ -52,7 +38,7 @@ function _errorChecksPass(gameObject, msg) {
     }
 
     if (msg.channel.id != gameObject.hostChannel && msg.channel.id != gameObject.playerChannel) {
-        error.error(`This command can only be run in \`${gameObject.game_title}\`'s game channels.`, null, msg);
+        error.error(`This command can only be run in \`${gameObject.game_title}\`'s game channels.`, undefined, msg);
         return false;
     }
 
@@ -76,9 +62,7 @@ client.on('message', msg => {
     switch(args[0]) {
         // Handles displaying information on items / spells / abilities / classes / inventory.
         case "help":
-            (activeGameObject) ?
-                help.baseMenu(msg) :
-                error.error("Unable to find an active game.", null, msg);
+                help.baseMenu(msg);
             break;
         case "item":
             (args[1]) ?
@@ -181,7 +165,7 @@ client.on('message', msg => {
             break;
         case "bleed":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            (args[1] && !isNaN(args[1]) && args[1] > 0) ?
+            (args[1] && !isNaN(args[1]) && Number(args[1]) > 0) ?
                 combat.bleed(Number(args[1]), msg.author.username, activeGameObject.game_title, msg) :
                 error.error("Incorrect input.", "The input should be a value for how much mana you want to regain.\n`!bleed <#>`", msg);
             break;
@@ -202,186 +186,169 @@ client.on('message', msg => {
         case "init":
             (_errorChecksPass(activeGameObject, msg) && ui.isHost(activeGameObject.host, msg.author.username)) ?
                 dice.init(activeGameObject.players, activeGameObject.playerChannel, msg) :
-                error.error("You need to be hosting the game to run this command.", null, msg);
+                error.error("You need to be hosting the game to run this command.", undefined, msg);
             break;
         case "give-money":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1] && args[2] && !isNaN(args[2]) && ui.isHost(activeGameObject.host, msg.author.username)) ?
                 database.giveMoney(args[1], activeGameObject.game_title, Number(args[2]), msg) :
                 error.error("Who are you paying and how much?", "`!give-money <player name> <$>`", msg);
             break;
         case "take-money":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1] && args[2] && !isNaN(args[2]) && ui.isHost(activeGameObject.host, msg.author.username)) ?
                 database.spendMoney(args[1], activeGameObject.game_title, args[2], msg, () => msg.react("✅")) :
                 error.error("Who are you taking money from and how much?", "`!take-money <player name> <$>`", msg);
             break;
         case "make-item":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 make.items(args, activeGameObject.hostChannel, msg) :
                 error.error("What is the item name and description?", "`!make-item -<item name> -<description> -<imgur link: optional>`\nRemember to put in the `-` before the name and description (and imgur link if you choose to add one in).", msg);
             break;
         case "del-item":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 make.deleteItem(args, msg) :
                 error.error("What is the item name?", "`!del-item <item name>`", msg);
             break;
         case "make-spell":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 make.spells(args, activeGameObject.hostChannel, msg) :
                 error.error("What is the spell name and description?", "`!make-spell -<spell name> -<description> -<imgur link: optional>`\nRemember to put in the `-` before the name and description (and imgur link if you choose to add one in).", msg);
             break;
         case "del-spell":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 make.deleteSpell(args, msg) :
                 error.error("What is the spell name?", "`!del-spell <spell name>`", msg);
             break;
         case "shop":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 make.shop(args, activeGameObject.game_title, msg) :
                 error.error("What is the store name and what items does it contain?", "`!shop -<shop name> -<item name> -<$> -<item name> -<$>...`\nThis allows for up to 9 items to be sold in a store.", msg);
             break;
         case "del-shop":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 make.deleteShop(args, activeGameObject.game_title, msg) :
                 error.error("What is the shop name?", "`!del-shop <shop name>`", msg);
             break;
         case "unlock":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 make.openShop(args, activeGameObject, msg) :
                 error.error("What is the shop name?", "`!unlock <shop name>`", msg);
             break;
         case "make-bot":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 make.bot(args, activeGameObject, msg) :
                 error.error("Missing some inputs.", "This command requires 7 inputs. Please take note of the \`-\`'s.\n`!make-bot -<bot name> -<health amount> -<strength amount> -<armor amount> -<weapon dice size> -<bonus healing power> -<bonus spell damage>`", msg);
             break;
         case "del-bot":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 make.deleteBot(args, activeGameObject.players, activeGameObject.game_title, msg) :
                 error.error("What is the name of the bot you want to delete.", "`!del-bot <bot name>`", msg);
             break;
         case "give-spell":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 inv.giveSpell(args, activeGameObject, msg) :
                 error.error("Incrrect input.", "Don't forget the `-` before the inputs.\n`!give-spell -<player name> -<spell name>`", msg);
             break;
         case "take-spell":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 inv.adminRemoveSpell(args, activeGameObject, msg) :
                 error.error("What are you taking and from who?", "`!take-spell -<player name> -<spell name>`", msg);
             break;
         case "give-item":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 inv.giveItem(args, activeGameObject, msg) :
                 error.error("Incrrect input.", "Don't forget the `-` before the inputs.\n`!give-item -<player name> -<item name> -<#: optional>`", msg);
             break;
         case "take-item":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 inv.adminRemoveItem(args, activeGameObject, msg) :
                 error.error("What are you taking and from who?", "`!take-item -<player name> -<item name> -<quantity: optional>`", msg);
             break;
         case "purge":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1] && !isNaN(args[1])) ?
                 purge.purge(args[1], msg.author.username, activeGameObject.host, msg) :
                 error.error("Your input needs to be a number.", "`!purge <#>`", msg);
             break;
         case "inc":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 stat.handleStats(true, args, "`!inc -<player name> -<health/mana/strength> -<#>`", activeGameObject.game_title, activeGameObject.playerChannel, msg) :
                 error.error("Missing the 3 required inputs.", "`!inc -<player name> -<health/mana/strength> -<#>`", msg);
             break;
         case "dec":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 stat.handleStats(false, args, "`!dec -<player name> -<health/mana/strength> -<#>`", activeGameObject.game_title, activeGameObject.playerChannel, msg) :
                 error.error("Missing the 3 required inputs.", "`!dec -<player name> -<health/mana/strength> -<#>`", msg);
             break;
         case "set-max":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 stat.setMax(args, "`!set-max -<player name> -<health/mana> -<#>`", activeGameObject.game_title, activeGameObject.playerChannel, msg) :
                 error.error("Missing the 3 required inputs.", "`!set-max -<player name> -<health/mana> -<#>`", msg);
             break;
         case "view-info":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 display.playerInfo(args[1], activeGameObject, msg) :
                 error.error("What is the player name?", "`!view-info <player name>`", msg);
             break;
         case "a-attack":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 combat.adminMelee(args, activeGameObject.players, activeGameObject.game_title, msg) :
                 error.error("No arguments given.", "`!a-attack -<player name to control> -<player name to attack>`", msg);
             break;
         case "a-equip":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 inv.adminEquip(args, activeGameObject.players, activeGameObject.game_title, msg) :
                 error.error("No arguments given.", "`!a-equip -<player name to control> -<item to equip>`", msg);
             break;
         case "a-cast":
             if (!_errorChecksPass(activeGameObject, msg)) return;
-            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
+            if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", undefined, msg);
             (args[1]) ?
                 combat.adminCast(args, activeGameObject.players, activeGameObject, msg) :
                 error.error("No arguments given.", "`!a-cast -<player name to control> -<spell name> -<target name: optional>`", msg);
             break;
-        // case "play":
-        //     if (!_errorChecksPass(activeGameObject, msg)) return;
-        //     if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
-        //     (args[1]) ?
-        //         music.execute(msg) :
-        //         error.error("What is the song you want to play?", null, msg);
-        //     break;
-        // case "skip":
-        //     if (!_errorChecksPass(activeGameObject, msg)) return;
-        //     if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
-        //     music.skip(msg);
-        //     break;
-        // case "stop":
-        //     if (!_errorChecksPass(activeGameObject, msg)) return;
-        //     if (!ui.isHost(activeGameObject.host, msg.author.username)) return error.error("This is an admin only command.", null, msg);
-        //     music.stop(msg);
-        //     break;
 
         // Misc commands.
         case "coin":
@@ -395,6 +362,3 @@ client.on('message', msg => {
 });
 
 exports.setActiveGameObject = setActiveGameObject;
-exports.queueDelete = queueDelete;
-exports.queueSet = queueSet;
-exports.getQueue = getQueue;

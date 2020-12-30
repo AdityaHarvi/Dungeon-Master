@@ -39,7 +39,7 @@ function melee(enemyName, playerName, gameName, msg) {
 function bleed(bleedAmount, playerName, gameName, msg) {
     db.getBasicPlayerInfo(playerName, gameName, msg, playerInfo => {
         if (playerInfo.mana === playerInfo.maxMana) {
-            return error.error("You're already at max mana.", null, msg);
+            return error.error("You're already at max mana.", undefined, msg);
         } else if ((playerInfo.mana + bleedAmount) > playerInfo.maxMana) {
             bleedAmount = playerInfo.maxMana - playerInfo.mana;
             msg.channel.send(`Bleed amount reduced to \`${bleedAmount}\`.`);
@@ -84,7 +84,7 @@ function cast(rawInput, playerName, gameObject, msg) {
     db.getSpellInfo(parsedCommand[1], false, msg, spellInfo => {
         if (spellInfo.type !== "misc") {
             if (!parsedCommand[2]) {
-                return error.error("Who are you casting this spell on?", null, msg);
+                return error.error("Who are you casting this spell on?", undefined, msg);
             } else if (!gameObject.players.includes(parsedCommand[2])) {
                 return error.error(`Could not find \`${parsedCommand[2]}\` in the member list.`, "Player/Enemy names are case sensitive. Try checking your spelling.", msg);
             }
@@ -107,9 +107,9 @@ function adminMelee(rawInput, playerList, gameName, msg) {
 
     let parsedCommand = ui.parseDashedCommand(rawInput);
     if (!playerList.includes(parsedCommand[1]))
-        return error.error(`Was not able to find ${parsedCommand[1]} in player list.`, null, msg);
+        return error.error(`Was not able to find ${parsedCommand[1]} in player list.`, undefined, msg);
     if (!playerList.includes(parsedCommand[2]))
-        return error.error(`Was not able to find ${parsedCommand[2]} in player list.`, null, msg);
+        return error.error(`Was not able to find ${parsedCommand[2]} in player list.`, undefined, msg);
 
     melee(parsedCommand[2], parsedCommand[1], gameName, msg);
 }
@@ -130,9 +130,9 @@ function adminCast(rawInput, playerList, gameObject, msg) {
     parsedCommand[2] = parsedCommand[2].replace(/ /g, "_").toLowerCase();
 
     if (!playerList.includes(parsedCommand[1]))
-        return error.error(`Was not able to find ${parsedCommand[1]}`, null, msg);
+        return error.error(`Was not able to find ${parsedCommand[1]}`, undefined, msg);
     if (parsedCommand[3] && !playerList.includes(parsedCommand[3]))
-        return error.error(`Was not able to find ${parsedCommand[3]}`, null, msg);
+        return error.error(`Was not able to find ${parsedCommand[3]}`, undefined, msg);
 
     // Modify the input so that it can be intrepreted by the 'cast' function.
     rawInput.splice(1,1);

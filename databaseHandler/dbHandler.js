@@ -412,7 +412,7 @@ function damagePlayer(playerName, gameName, stat, amount, msg, callback) {
         switch (stat) {
             case "health":
                 if (playerInfo.health - amount <= 0) {
-                    error.error(`${playerName} has been killed!`, null, msg);
+                    error.error(`${playerName} has been killed!`, undefined, msg);
                     amount = playerInfo.health;
                 }
                 break;
@@ -592,7 +592,7 @@ function deleteJournalEntry(entryName, playerName, gameName, msg) {
         [entryName, playerName, gameName]
     );
 
-    msg.react("✅");
+    msg.channel.send("Journal Entry removed.");
 
     db.close();
 }
@@ -653,7 +653,7 @@ function useItem(itemName, playerName, gameName, msg) {
             let deleteItem = (itemInfo.quantity <= 0) ? true : false;
             getItemInfo(itemName, false, msg, fullItemInfo => {
                 if (!fullItemInfo.consumable) {
-                    return error.error("This item cannot be consumed.", null, msg);
+                    return error.error("This item cannot be consumed.", undefined, msg);
                 }
 
                 fullItemInfo.bonusHealth += playerInfo.bonusHealing;
@@ -736,7 +736,7 @@ function equipItem(playerName, gameName, itemName, msg) {
             // Get the to-be equiped item information.
             getItemInfo(itemName, false, msg, itemInfo => {
                 if (!itemInfo.equipable) {
-                    return error.error("This item cannot be equiped.", null, msg);
+                    return error.error("This item cannot be equiped.", undefined, msg);
                 }
 
                 let itemType = "";
@@ -899,7 +899,8 @@ function payPlayer(receiver, amount, playerName, gameName, msg) {
 function spendMoney(playerName, gameName, quantity, msg, callback) {
     getBasicPlayerInfo(playerName, gameName, msg, playerInfo => {
         if (quantity > playerInfo.money) {
-            return error.error(`${playerName} does not enough money.`, `Short ${quantity - playerInfo.money} :coin:.`, msg);
+            let channel = msg.guild.channels.cache.get(msg.client.channels.cache.find(channel => channel.name === "test_player_channel").id);
+            return error.error(`${playerName} does not have enough money.`, `Short ${quantity - playerInfo.money} :coin:.`, msg, channel);
         }
 
         let db = new sqlite3.Database("dungeon.db", err => {
@@ -933,12 +934,12 @@ function buyItem(playerName, gameObject, itemName, price, msg) {
         });
 
         if (occupiedInventory >= playerInfo.maxInventory) {
-            return error.error(`${playerName} does not have enough inventory space.`, null, msg);
+            return msg.client.channels.cache.get(gameObject.playerChannel).send(`${playerName} does not have enough inventory space.`);
         }
 
         spendMoney(playerName, gameObject.game_title, price, msg, () => {
             giveItem(playerName, gameObject, itemName, 1, msg, success => {
-                msg.channel.send(`${playerName} bought a ${itemName}`);
+                msg.client.channels.cache.get(gameObject.playerChannel).send(`${playerName} bought a ${itemName}`);
             });
         });
     });
