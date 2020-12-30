@@ -87,17 +87,17 @@ client.on('message', msg => {
                 gameHandler.setupGame(args, msg) :
                 error.error("What is the campaign name & description?", "`!create -<Campaign Name> -<Description>`\n Don't forget the `-` before the name and description.", msg);
             break;
-        case "pause-game":
+        case "pause":
             (args[1]) ?
                 gameHandler.pauseGame(args, msg) :
                 error.error("What is the campaign name?", "`!pause <Campaign Name>`", msg);
             break;
-        case "end-game":
+        case "end":
             (args[1]) ?
                 gameHandler.endGame(args, msg) :
                 error.error("What is the campaign name?", "`!end <Campaign Name>`", msg);
             break;
-        case "play-game":
+        case "play":
             (args[1]) ?
                 gameHandler.playGame(args, msg) :
                 error.error("What is the campaign name?", "`!play <Campaign Name>`", msg);

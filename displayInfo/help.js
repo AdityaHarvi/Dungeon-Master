@@ -73,9 +73,9 @@ function _getGameStatusInfo() {
         .setDescription("Clicking the reaction icons can take you to the respective page.\nClicking 🌐 will return you to the home screen.")
         .addFields(
             {name: "`!create -<campaign name> -<campaign description>`", value: "Generate a UI allowing players to join a game.", inline: true},
-            {name: "`!pause-game <campaign name>`", value: "Pause the game preventing players from typing in it and allowing all other members of the server to view the text channel.", inline: true},
-            {name: "`!play-game <campaign name>`", value: "Set the game as active- allowing players to type into the channels and preventing non-players from viewing the channel.", inline: true},
-            {name: "`!end-game <campaign name>`", value: "Generate a UI allowing the host to either archive or fully wipe the game.", inline: true}
+            {name: "`!pause <campaign name>`", value: "Pause the game preventing players from typing in it and allowing all other members of the server to view the text channel.", inline: true},
+            {name: "`!play <campaign name>`", value: "Set the game as active- allowing players to type into the channels and preventing non-players from viewing the channel.", inline: true},
+            {name: "`!end <campaign name>`", value: "Generate a UI allowing the host to either archive or fully wipe the game.", inline: true}
         )
         .setFooter("All commands are lowercase.\nThis menu will timeout in 5 minutes.")
 }
