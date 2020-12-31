@@ -664,6 +664,7 @@ function useItem(itemName, playerName, gameName, msg) {
                 if (fullItemInfo.bonusMana + playerInfo.mana > playerInfo.maxMana) {
                     fullItemInfo.bonusMana = playerInfo.maxMana - playerInfo.mana;
                 }
+                // if (fullItemInfo.bonusHealing) FIXME: See if you can get this to have -ve attributes.
 
                 let db = new sqlite3.Database("dungeon.db", err => {
                     if (err) {
@@ -1460,7 +1461,7 @@ function updateGamePlayerList(gameName, newPlayerList) {
         }
     });
 
-    playerList = _arrayToString(newPlayerList);
+    let playerList = _arrayToString(newPlayerList);
 
     db.run(
         `UPDATE game

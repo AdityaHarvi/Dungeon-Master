@@ -857,7 +857,7 @@ function deleteBot(rawInput, playerList, gameName, msg) {
 
     const indexOfBot = playerList.indexOf(botName);
     playerList.splice(indexOfBot, 1);
-    db.deletePlayer(botName, gameName);
+    db.deletePlayer(botName, gameName, playerList);
     msg.react("✅");
 }
 
