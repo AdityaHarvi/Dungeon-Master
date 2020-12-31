@@ -767,6 +767,7 @@ function bot(rawInput, gameObject, msg) {
         if (isNaN(arg)) {
             error.error("Every input after the first should be a number!", "`!make-bot -<bot name> -<health amount> -<strength amount> -<armor amount> -<weapon dice size> -<bonus healing power> -<bonus spell damage>`", msg);
             inputsPass = false;
+            return;
         }
     });
     if (!inputsPass)
@@ -799,7 +800,7 @@ function bot(rawInput, gameObject, msg) {
     playerObject.class = "Bot";
 
     let weaponObj = {};
-    weaponObj.item_name = `${parsedCommand[1]}_weapon`;
+    weaponObj.name = `${parsedCommand[1]}_weapon`;
     weaponObj.equipable = 1;
     weaponObj.consumable = 0;
     weaponObj.description = `The main weapon for ${parsedCommand[1]}`;
@@ -817,7 +818,7 @@ function bot(rawInput, gameObject, msg) {
     weaponObj.bonusMoney= 0;
 
     let clothingObj = {};
-    clothingObj.item_name = `${parsedCommand[1]}_clothing`;
+    clothingObj.name = `${parsedCommand[1]}_clothing`;
     clothingObj.equipable = 1;
     clothingObj.consumable = 0;
     clothingObj.description = `The main clothing for ${parsedCommand[1]}`;

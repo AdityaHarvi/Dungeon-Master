@@ -42,7 +42,7 @@ function _errorChecksPass(gameObject, msg) {
         return false;
     }
 
-    if (!gameObject.players.includes(msg.author.username)) {
+    if (!ui.isHost(gameObject.host, msg.author.username) && !gameObject.players.includes(msg.author.username)) {
         msg.react("❌");
         msg.author.send(`Unfortunately, you are not a part of the active game: \`${gameObject.game_title}\`.`);
         return false;

@@ -195,10 +195,6 @@ function _parsePlayerSpells(playerInfo) {
  * @param {object} msg Contains information about the command sent by the player through discord.
  */
 function playerInfo(playerName, gameObject, msg) {
-    if (playerName !== msg.author.username && !ui.isHost(gameObject.host, playerName)) {
-        return error.error("This is a host only command.", "You cannot view another members inventory.", msg);
-    }
-
     db.getFullPlayerInfo(playerName, gameObject.game_title, msg, playerInfo => {
         db.getItemInfo(playerInfo.weapon, false, msg, weaponInfo => {
             db.getItemInfo(playerInfo.clothing, false, msg, clothingInfo => {
@@ -207,6 +203,7 @@ function playerInfo(playerName, gameObject, msg) {
 
                 let inventoryEmbed = _getPlayerInfoEmbed(playerInfo, weaponInfo, clothingInfo);
                 msg.author.send(inventoryEmbed);
+                msg.react("✅");
             });
         });
     });

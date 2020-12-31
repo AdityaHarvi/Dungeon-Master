@@ -899,7 +899,7 @@ function payPlayer(receiver, amount, playerName, gameName, msg) {
 function spendMoney(playerName, gameName, quantity, msg, callback) {
     getBasicPlayerInfo(playerName, gameName, msg, playerInfo => {
         if (quantity > playerInfo.money) {
-            let channel = msg.guild.channels.cache.get(msg.client.channels.cache.find(channel => channel.name === "test_player_channel").id);
+            let channel = msg.guild.channels.cache.get(msg.client.channels.cache.find(channel => channel.name === `${gameName}_player_channel`).id);
             return error.error(`${playerName} does not have enough money.`, `Short ${quantity - playerInfo.money} :coin:.`, msg, channel);
         }
 
@@ -1460,7 +1460,7 @@ function updateGamePlayerList(gameName, newPlayerList) {
         }
     });
 
-    playerList = _stringToArray(newPlayerList);
+    playerList = _arrayToString(newPlayerList);
 
     db.run(
         `UPDATE game
