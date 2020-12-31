@@ -7,6 +7,7 @@ This discord bot allows for player inventory management, basic combat with melee
   - [Tutorial on how to create your own bot can be found here.](https://discordpy.readthedocs.io/en/latest/discord.html)\
     When creating the bot, be sure to give it admin permissions.
 - [Install NodeJS](https://nodejs.org/en/)
+- Install dependencies with `npm install`
 - Replace `getToken.getToken()` with your personal bot token- found on [this line](https://github.com/AdityaHarvi/Dungeon-Master/blob/main/main.js#L23) (remember to put it in quotes).\
   You may also need to remove [this line](https://github.com/AdityaHarvi/Dungeon-Master/blob/main/main.js#L3) depending on how you implemented your bot token.
 ### How to start the bot:
