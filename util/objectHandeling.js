@@ -287,7 +287,7 @@ function _isCorrectFormat(parsedCommand, itemOrSpell, msg) {
         error.error("The description should not be a link.", `\`!make-${itemOrSpell} -<${itemOrSpell} name> -<description> -<imgur link: optional>\``, msg);
         return false;
     } else if (parsedCommand[3] && !ui.isImgurLink(parsedCommand[3])) {
-        error.error("The last input should be an imgur link.", `\`!make-${itemOrSpell} -<${itemOrSpell} name> -<description> -<imgur link: optional>\``, msg);
+        error.error("The last input should be an imgur link ending with `.png` or `.gif`.", `\`!make-${itemOrSpell} -<${itemOrSpell} name> -<description> -<imgur link: optional>\``, msg);
         return false;
     }
     return true;

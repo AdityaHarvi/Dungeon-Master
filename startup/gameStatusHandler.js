@@ -204,7 +204,7 @@ function _generateCreationUI(gameName, gameDescription, msg) {
     gameObject.game_title = gameName;
     gameObject.description = gameDescription;
     gameObject.host = msg.member.user.username;
-    gameObject.players = ["Laggy"];
+    gameObject.players = [];
     gameObject.declined = [];
     gameObject.hostChannel = null;
     gameObject.playerChannel = null;
@@ -256,9 +256,8 @@ function _generateCreationUI(gameName, gameDescription, msg) {
                     }
                     break;
                 case "👍":
-                    // FIXME. Commented out lines for testing purposes.
                     // Host can start the game from there. This will generate the game file.
-                    if (ui.isHost(gameObject.host, inputUserName) /*&& gameObject.players.length > 0*/) {
+                    if (ui.isHost(gameObject.host, inputUserName) && gameObject.players.length > 0) {
                         db.getActiveGame(isActive => {
                             if (isActive) {
                                 return error.error(`Campaign \`${isActive.game_title}\` is currently active.`, `Notify ${isActive.host} to \`!pause ${isActive.game_title}\` or \`!end ${isActive.game_title}\`.`, msg);
