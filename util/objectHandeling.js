@@ -697,7 +697,7 @@ function _generateShopUI(shopName, fields, gameObject, stockInfo, msg) {
                 case "🗑️":
                     if (ui.isHost(gameObject.host, userInput)) {
                         shopCreationEmbed.delete();
-                        msg.client.channels.cache.get(playerChannel).send("Shop closed. See you next time!");
+                        msg.client.channels.cache.get(gameObject.playerChannel).send("Shop closed. See you next time!");
                     }
                     return;
             }

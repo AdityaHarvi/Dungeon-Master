@@ -155,7 +155,7 @@ client.on('message', msg => {
         case "roll":
             if (!_errorChecksPass(activeGameObject, msg)) return;
             if (args[1] && (isNaN(args[1]) || Number(args[1]) <= 0)) return error.error("The input needs to be a positive number.", "`!roll <optional: dice size>`\nDefaults to D20 if no size is given.", msg);
-            display.diceRoll(Number(args[1]), activeGameObject.game_title, msg);
+            display.diceRoll(args[1] ? Number(args[1]) : 20, activeGameObject.game_title, msg);
             break;
         case "attack":
             if (!_errorChecksPass(activeGameObject, msg)) return;
