@@ -1,6 +1,22 @@
+<p align="center">
+  <img width="578" alt="Tetrix" src="https://github.com/user-attachments/assets/abef1b1b-09bb-47c2-a70b-1df118fe3c5b">
+</p>
+
 # Dungeon-Master Discord Bot
-This bot is designed to operated by a group of friends on a private discord server. It also does not follow the exact rules of Dungeons and Dragons 5e, but instead a much more relaxed version with easier to understand set of rules. This works perfectly for new-comers to the game!\
-This discord bot allows for player inventory management, basic combat with melee weapons and spells, player shopping (the host of the game can create a shop allowing players to purchase items from it), dice rolling capabilities among other functions.
+This bot is designed to be operated by a group of friends on a private discord server. It also does not follow the exact rules of Dungeons and Dragons 5e, but instead a much more relaxed version with easier to understand set of rules. This works perfectly for new-comers to the game!\
+This discord bot supports the following:
+- player inventory management
+- basic combat with melee weapons and spells
+- player shopping (the host of the game can create a shop allowing players to purchase items from it)
+- dice rolling capabilities
+- Generation of NPC's (controlled by the host)
+- class selection
+- and more!
+
+<p align="center">
+  <img width="699" alt="Inventory" src="https://github.com/user-attachments/assets/865fbe5f-09b4-4653-8f08-f2700f7afde8">
+</p>
+  
 ## Getting Started
 ### Pre-Requisites for operating this bot:
 - You need to create your own discord bot entity which can be invited to your private server.
